@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 type Organization = {
@@ -28,7 +29,15 @@ type User = {
   role: string;
 };
 
+type PaginationState = {
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
 export default function OrganizationsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
@@ -37,6 +46,18 @@ export default function OrganizationsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination states
+  const [conceptsPagination, setConceptsPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [storesPagination, setStoresPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   // Form states
   const [newOrgName, setNewOrgName] = useState('');
@@ -52,14 +73,18 @@ export default function OrganizationsPage() {
     if (selectedOrg) {
       fetchConcepts(selectedOrg);
       fetchUsers(selectedOrg);
+      // Update URL
+      navigate(`/admin/organizations/${selectedOrg}`, { replace: true });
     }
-  }, [selectedOrg]);
+  }, [selectedOrg, conceptsPagination.page]);
 
   useEffect(() => {
     if (selectedConcept) {
       fetchStores(selectedConcept);
+      // Update URL
+      navigate(`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}`, { replace: true });
     }
-  }, [selectedConcept]);
+  }, [selectedConcept, storesPagination.page]);
 
   const fetchOrganizations = async () => {
     try {
@@ -80,14 +105,26 @@ export default function OrganizationsPage() {
 
   const fetchConcepts = async (orgId: string) => {
     try {
+      // First get total count
+      const { count } = await supabase
+        .from('concepts')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', orgId);
+
+      // Then get paginated data
       const { data, error } = await supabase
         .from('concepts')
         .select('*')
         .eq('organization_id', orgId)
-        .order('name');
+        .order('name')
+        .range(
+          (conceptsPagination.page - 1) * conceptsPagination.pageSize,
+          conceptsPagination.page * conceptsPagination.pageSize - 1
+        );
       
       if (error) throw error;
       setConcepts(data || []);
+      setConceptsPagination(prev => ({ ...prev, total: count || 0 }));
     } catch (err) {
       setError('Failed to fetch concepts');
       console.error(err);
@@ -96,14 +133,26 @@ export default function OrganizationsPage() {
 
   const fetchStores = async (conceptId: string) => {
     try {
+      // First get total count
+      const { count } = await supabase
+        .from('stores')
+        .select('*', { count: 'exact', head: true })
+        .eq('concept_id', conceptId);
+
+      // Then get paginated data
       const { data, error } = await supabase
         .from('stores')
         .select('*')
         .eq('concept_id', conceptId)
-        .order('name');
+        .order('name')
+        .range(
+          (storesPagination.page - 1) * storesPagination.pageSize,
+          storesPagination.page * storesPagination.pageSize - 1
+        );
       
       if (error) throw error;
       setStores(data || []);
+      setStoresPagination(prev => ({ ...prev, total: count || 0 }));
     } catch (err) {
       setError('Failed to fetch stores');
       console.error(err);
@@ -210,6 +259,41 @@ export default function OrganizationsPage() {
     }
   };
 
+  const renderPagination = (
+    pagination: PaginationState,
+    setPagination: React.Dispatch<React.SetStateAction<PaginationState>>,
+    label: string
+  ) => {
+    const totalPages = Math.ceil(pagination.total / pagination.pageSize);
+    
+    return (
+      <div className="flex items-center justify-between mt-4">
+        <span className="text-sm text-[#666666]">
+          {label} {pagination.total} total
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+            disabled={pagination.page === 1}
+            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg">
+            Page {pagination.page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+            disabled={pagination.page >= totalPages}
+            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4">
       <h1 className="text-3xl font-bold mb-8">Organization Management</h1>
@@ -245,17 +329,18 @@ export default function OrganizationsPage() {
 
           <div className="space-y-2">
             {organizations.map(org => (
-              <button
+              <Link
                 key={org.id}
+                to={`/admin/organizations/${org.id}`}
                 onClick={() => setSelectedOrg(org.id)}
-                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                className={`block w-full text-left px-4 py-2 rounded-lg transition-colors ${
                   selectedOrg === org.id
                     ? 'bg-indigo-600 text-white'
                     : 'hover:bg-[#2A2A2A] text-[#666666]'
                 }`}
               >
                 {org.name}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -286,19 +371,26 @@ export default function OrganizationsPage() {
 
           <div className="space-y-2">
             {concepts.map(concept => (
-              <button
+              <Link
                 key={concept.id}
+                to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
                 onClick={() => setSelectedConcept(concept.id)}
-                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                className={`block w-full text-left px-4 py-2 rounded-lg transition-colors ${
                   selectedConcept === concept.id
                     ? 'bg-indigo-600 text-white'
                     : 'hover:bg-[#2A2A2A] text-[#666666]'
                 }`}
               >
                 {concept.name}
-              </button>
+              </Link>
             ))}
           </div>
+
+          {selectedOrg && renderPagination(
+            conceptsPagination,
+            setConceptsPagination,
+            'Concepts:'
+          )}
         </div>
 
         {/* Stores Panel */}
@@ -336,9 +428,10 @@ export default function OrganizationsPage() {
 
           <div className="space-y-2">
             {stores.map(store => (
-              <div
+              <Link
                 key={store.id}
-                className="px-4 py-2 rounded-lg bg-[#2A2A2A] text-white"
+                to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
+                className="block px-4 py-2 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]"
               >
                 <div>{store.name}</div>
                 {store.external_id && (
@@ -346,9 +439,15 @@ export default function OrganizationsPage() {
                     ID: {store.external_id}
                   </div>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
+
+          {selectedConcept && renderPagination(
+            storesPagination,
+            setStoresPagination,
+            'Stores:'
+          )}
         </div>
       </div>
 
