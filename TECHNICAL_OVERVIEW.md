@@ -12,9 +12,9 @@ The web app used by internal support, bar owners, franchise operators, and staff
 - Trial/demo limited usage periods
 - Extend subscriptions or request support
 
-**Hosted on:** Vercel, or any platform that supports Next.js.
+**Hosted on:** Vercel, or any platform that supports Vite.
 
-**Backed by:** Neon Postgres via Drizzle ORM.
+**Backed by:** Supabase Postgres.
 
 ---
 
@@ -61,8 +61,7 @@ The platform supports a flexible hierarchy:
 
 ## 🔐 Auth Strategy
 
-- Username + password via NextAuth
-- Drizzle adapter for session persistence
+- Username + password
 - SSO planned (Google Workspace, OAuth2 for chains)
 
 ---
