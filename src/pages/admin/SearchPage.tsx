@@ -1,10 +1,6 @@
-import React, { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 type SearchResult = {
   type: 'organization' | 'concept' | 'store' | 'user';
@@ -17,6 +13,20 @@ export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Debounce search to avoid too many API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (query.trim()) {
+        handleSearch();
+      } else {
+        setResults([]);
+      }
+    }, 300); // Wait 300ms after last keystroke before searching
+
+    return () => clearTimeout(timeoutId);
+  }, [query]);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -85,6 +95,23 @@ export default function SearchPage() {
     }
   };
 
+  const handleViewDetails = (result: SearchResult) => {
+    switch (result.type) {
+      case 'organization':
+        navigate('/admin/organizations', { state: { selectedOrgId: result.id } });
+        break;
+      case 'concept':
+        navigate('/admin/organizations', { state: { selectedConceptId: result.id } });
+        break;
+      case 'store':
+        navigate('/admin/organizations', { state: { selectedStoreId: result.id } });
+        break;
+      case 'user':
+        // TODO: Implement user details view
+        break;
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Search</h1>
@@ -95,17 +122,9 @@ export default function SearchPage() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="Search organizations, concepts, stores, or users..."
             className="flex-1 rounded-lg bg-[#2A2A2A] border-[#333333] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 text-white p-3"
           />
-          <button
-            onClick={handleSearch}
-            disabled={loading}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {loading ? 'Searching...' : 'Search'}
-          </button>
         </div>
       </div>
 
@@ -127,7 +146,7 @@ export default function SearchPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => {/* TODO: Navigate to detail view */}}
+                  onClick={() => handleViewDetails(result)}
                   className="text-indigo-400 hover:text-indigo-300 text-sm"
                 >
                   View Details →
