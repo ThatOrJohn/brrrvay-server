@@ -26,6 +26,12 @@ export default function Sidebar() {
           Search
         </Link>
         <Link
+          to="/admin/organizations"
+          className={linkClass('/admin/organizations')}
+        >
+          Organizations
+        </Link>
+        <Link
           to="/admin/dashboard"
           className={linkClass('/admin/dashboard')}
         >

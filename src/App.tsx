@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import AdminLoginPage from './pages/admin/LoginPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import SearchPage from './pages/admin/SearchPage';
+import OrganizationsPage from './pages/admin/OrganizationsPage';
 import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
 
@@ -16,9 +17,10 @@ function App() {
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminLoginPage />} />
-        <Route element={<AdminLayout />}>
+        <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="search" element={<SearchPage />} />
+          <Route path="organizations" element={<OrganizationsPage />} />
         </Route>
 
         {/* 404 */}
