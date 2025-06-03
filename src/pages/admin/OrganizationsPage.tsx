@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import bcrypt from 'bcryptjs';
 
 type Organization = {
   id: string;
@@ -29,6 +30,14 @@ type User = {
   role: string;
 };
 
+type ExternalUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  created_at: string;
+  last_login: string | null;
+};
+
 type PaginationState = {
   page: number;
   pageSize: number;
@@ -37,15 +46,24 @@ type PaginationState = {
 
 export default function OrganizationsPage() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { orgId, conceptId, storeId } = useParams();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [externalUsers, setExternalUsers] = useState<ExternalUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // New external user form state
+  const [newExternalUser, setNewExternalUser] = useState({
+    email: '',
+    name: '',
+    password: '',
+    selectedStores: [] as string[]
+  });
 
   // Pagination states
   const [conceptsPagination, setConceptsPagination] = useState<PaginationState>({
@@ -53,6 +71,7 @@ export default function OrganizationsPage() {
     pageSize: 10,
     total: 0,
   });
+
   const [storesPagination, setStoresPagination] = useState<PaginationState>({
     page: 1,
     pageSize: 10,
@@ -70,21 +89,20 @@ export default function OrganizationsPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedOrg) {
-      fetchConcepts(selectedOrg);
-      fetchUsers(selectedOrg);
-      // Update URL
-      navigate(`/admin/organizations/${selectedOrg}`, { replace: true });
+    if (orgId) {
+      setSelectedOrg(orgId);
+      fetchConcepts(orgId);
+      fetchUsers(orgId);
+      fetchExternalUsers(orgId);
     }
-  }, [selectedOrg, conceptsPagination.page]);
+  }, [orgId, conceptsPagination.page]);
 
   useEffect(() => {
-    if (selectedConcept) {
-      fetchStores(selectedConcept);
-      // Update URL
-      navigate(`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}`, { replace: true });
+    if (conceptId) {
+      setSelectedConcept(conceptId);
+      fetchStores(conceptId);
     }
-  }, [selectedConcept, storesPagination.page]);
+  }, [conceptId, storesPagination.page]);
 
   const fetchOrganizations = async () => {
     try {
@@ -105,13 +123,11 @@ export default function OrganizationsPage() {
 
   const fetchConcepts = async (orgId: string) => {
     try {
-      // First get total count
       const { count } = await supabase
         .from('concepts')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', orgId);
 
-      // Then get paginated data
       const { data, error } = await supabase
         .from('concepts')
         .select('*')
@@ -133,13 +149,11 @@ export default function OrganizationsPage() {
 
   const fetchStores = async (conceptId: string) => {
     try {
-      // First get total count
       const { count } = await supabase
         .from('stores')
         .select('*', { count: 'exact', head: true })
         .eq('concept_id', conceptId);
 
-      // Then get paginated data
       const { data, error } = await supabase
         .from('stores')
         .select('*')
@@ -159,104 +173,129 @@ export default function OrganizationsPage() {
     }
   };
 
-  const fetchUsers = async (orgId: string) => {
+  const fetchExternalUsers = async (orgId: string) => {
     try {
-      // First, get the user IDs from user_access
-      const { data: userAccessData, error: userAccessError } = await supabase
-        .from('user_access')
-        .select('user_id')
-        .eq('organization_id', orgId);
-      
-      if (userAccessError) throw userAccessError;
-      
-      // Extract user IDs from the result
-      const userIds = userAccessData.map(row => row.user_id);
-      
-      // If no users found, set empty array and return
-      if (userIds.length === 0) {
-        setUsers([]);
-        return;
-      }
-
-      // Then fetch the actual user data
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email, name, role')
-        .in('id', userIds)
-        .order('email');
-      
-      if (userError) throw userError;
-      setUsers(userData || []);
-    } catch (err) {
-      setError('Failed to fetch users');
-      console.error(err);
-    }
-  };
-
-  const handleAddOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const { data, error } = await supabase
-        .from('organizations')
-        .insert([{ name: newOrgName }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      setOrganizations([...organizations, data]);
-      setNewOrgName('');
-    } catch (err) {
-      setError('Failed to add organization');
-      console.error(err);
-    }
-  };
-
-  const handleAddConcept = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOrg) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('concepts')
-        .insert([{
-          name: newConceptName,
-          organization_id: selectedOrg
-        }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      setConcepts([...concepts, data]);
-      setNewConceptName('');
-    } catch (err) {
-      setError('Failed to add concept');
-      console.error(err);
-    }
-  };
-
-  const handleAddStore = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedConcept) return;
-
-    try {
-      const { data, error } = await supabase
+      const { data: storeIds } = await supabase
         .from('stores')
-        .insert([{
-          name: newStoreName,
-          external_id: newStoreExternalId || null,
-          concept_id: selectedConcept
-        }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      setStores([...stores, data]);
-      setNewStoreName('');
-      setNewStoreExternalId('');
+        .select('id')
+        .eq('concept_id', conceptId);
+
+      if (!storeIds?.length) return;
+
+      const { data: userStores } = await supabase
+        .from('external_user_stores')
+        .select('external_user_id')
+        .in('store_id', storeIds.map(s => s.id));
+
+      if (!userStores?.length) return;
+
+      const { data: users } = await supabase
+        .from('external_users')
+        .select('*')
+        .in('id', userStores.map(us => us.external_user_id))
+        .order('email');
+
+      setExternalUsers(users || []);
     } catch (err) {
-      setError('Failed to add store');
+      setError('Failed to fetch external users');
       console.error(err);
     }
+  };
+
+  const handleAddExternalUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrg || !newExternalUser.selectedStores.length) return;
+
+    try {
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(newExternalUser.password, salt);
+
+      // Create user
+      const { data: userData, error: userError } = await supabase
+        .from('external_users')
+        .insert({
+          email: newExternalUser.email,
+          name: newExternalUser.name,
+          password_hash: passwordHash
+        })
+        .select()
+        .single();
+
+      if (userError) throw userError;
+
+      // Create store access
+      const storeAccess = newExternalUser.selectedStores.map(storeId => ({
+        external_user_id: userData.id,
+        store_id: storeId
+      }));
+
+      const { error: accessError } = await supabase
+        .from('external_user_stores')
+        .insert(storeAccess);
+
+      if (accessError) throw accessError;
+
+      // Reset form and refresh users
+      setNewExternalUser({
+        email: '',
+        name: '',
+        password: '',
+        selectedStores: []
+      });
+      
+      fetchExternalUsers(selectedOrg);
+    } catch (err) {
+      setError('Failed to create external user');
+      console.error(err);
+    }
+  };
+
+  const renderBreadcrumbs = () => {
+    const crumbs = [];
+    
+    if (selectedOrg) {
+      const org = organizations.find(o => o.id === selectedOrg);
+      crumbs.push(
+        <Link 
+          key="org" 
+          to={`/admin/organizations/${selectedOrg}`}
+          className="text-indigo-400 hover:text-indigo-300"
+        >
+          {org?.name}
+        </Link>
+      );
+    }
+
+    if (selectedConcept) {
+      const concept = concepts.find(c => c.id === selectedConcept);
+      crumbs.push(
+        <span key="sep1" className="mx-2 text-[#666666]">/</span>,
+        <Link 
+          key="concept"
+          to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}`}
+          className="text-indigo-400 hover:text-indigo-300"
+        >
+          {concept?.name}
+        </Link>
+      );
+    }
+
+    if (storeId) {
+      const store = stores.find(s => s.id === storeId);
+      crumbs.push(
+        <span key="sep2" className="mx-2 text-[#666666]">/</span>,
+        <span key="store" className="text-white">
+          {store?.name}
+        </span>
+      );
+    }
+
+    return (
+      <div className="mb-6 text-lg">
+        {crumbs}
+      </div>
+    );
   };
 
   const renderPagination = (
@@ -296,7 +335,9 @@ export default function OrganizationsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4">
-      <h1 className="text-3xl font-bold mb-8">Organization Management</h1>
+      <h1 className="text-3xl font-bold mb-4">Organization Management</h1>
+      
+      {renderBreadcrumbs()}
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-6 text-sm text-red-500">
@@ -332,8 +373,7 @@ export default function OrganizationsPage() {
               <Link
                 key={org.id}
                 to={`/admin/organizations/${org.id}`}
-                onClick={() => setSelectedOrg(org.id)}
-                className={`block w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   selectedOrg === org.id
                     ? 'bg-indigo-600 text-white'
                     : 'hover:bg-[#2A2A2A] text-[#666666]'
@@ -374,8 +414,7 @@ export default function OrganizationsPage() {
               <Link
                 key={concept.id}
                 to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
-                onClick={() => setSelectedConcept(concept.id)}
-                className={`block w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   selectedConcept === concept.id
                     ? 'bg-indigo-600 text-white'
                     : 'hover:bg-[#2A2A2A] text-[#666666]'
@@ -431,7 +470,7 @@ export default function OrganizationsPage() {
               <Link
                 key={store.id}
                 to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
-                className="block px-4 py-2 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]"
+                className="block px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]"
               >
                 <div>{store.name}</div>
                 {store.external_id && (
@@ -451,28 +490,111 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
-      {/* Users Panel */}
+      {/* External Users Panel */}
       {selectedOrg && (
         <div className="mt-8 bg-[#1A1A1A] border border-[#333333] rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Users</h2>
-          
+          <h2 className="text-xl font-semibold mb-6">External Users</h2>
+
+          <form onSubmit={handleAddExternalUser} className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#666666] mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={newExternalUser.email}
+                  onChange={(e) => setNewExternalUser(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#666666] mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={newExternalUser.name}
+                  onChange={(e) => setNewExternalUser(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#666666] mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={newExternalUser.password}
+                  onChange={(e) => setNewExternalUser(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#666666] mb-1">
+                Accessible Stores
+              </label>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {stores.map(store => (
+                  <label key={store.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={newExternalUser.selectedStores.includes(store.id)}
+                      onChange={(e) => {
+                        const storeId = store.id;
+                        setNewExternalUser(prev => ({
+                          ...prev,
+                          selectedStores: e.target.checked
+                            ? [...prev.selectedStores, storeId]
+                            : prev.selectedStores.filter(id => id !== storeId)
+                        }));
+                      }}
+                      className="rounded bg-[#2A2A2A] border-[#333333] text-indigo-600"
+                    />
+                    <span className="text-white">{store.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Add External User
+              </button>
+            </div>
+          </form>
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-[#333333]">
                   <th className="pb-2 font-medium text-[#666666]">Email</th>
                   <th className="pb-2 font-medium text-[#666666]">Name</th>
-                  <th className="pb-2 font-medium text-[#666666]">Role</th>
+                  <th className="pb-2 font-medium text-[#666666]">Last Login</th>
                   <th className="pb-2 font-medium text-[#666666]">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map(user => (
+                {externalUsers.map(user => (
                   <tr key={user.id} className="border-b border-[#333333]">
-                    <td className="py-2">{user.email}</td>
-                    <td className="py-2">{user.name || '-'}</td>
-                    <td className="py-2">{user.role}</td>
-                    <td className="py-2">
+                    <td className="py-3">{user.email}</td>
+                    <td className="py-3">{user.name || '-'}</td>
+                    <td className="py-3">
+                      {user.last_login 
+                        ? new Date(user.last_login).toLocaleDateString()
+                        : 'Never'
+                      }
+                    </td>
+                    <td className="py-3">
                       <button
                         className="text-indigo-400 hover:text-indigo-300"
                         onClick={() => {/* TODO: Edit user */}}
