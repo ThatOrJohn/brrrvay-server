@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
 
@@ -12,58 +12,61 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [internalUsers, setInternalUsers] = useState<{ email: string }[]>([]);
+  const [debugError, setDebugError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchInternalUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('internal_users')
+          .select('email');
+
+        if (error) {
+          console.error('Error fetching internal users:', error);
+          setDebugError(`Error fetching users: ${error.message}`);
+          return;
+        }
+
+        setInternalUsers(data || []);
+      } catch (err) {
+        console.error('Error in fetchInternalUsers:', err);
+        setDebugError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    };
+
+    fetchInternalUsers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Debug: Log auth attempt
-    console.log('Attempting authentication with email:', email);
-    console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-
     try {
-      // Debug: Log auth request
-      console.log('Making auth request to Supabase...');
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      // Debug: Log auth response
-      console.log('Auth response:', { data, error });
-
       if (error) throw error;
 
       if (data?.user) {
-        // Debug: Log user data
-        console.log('User authenticated:', data.user);
-        
-        // Debug: Log internal user check
-        console.log('Checking if user is internal...');
-        
         const { data: internalUser, error: internalError } = await supabase
           .from('internal_users')
           .select('*')
           .eq('id', data.user.id)
           .single();
 
-        // Debug: Log internal user check results
-        console.log('Internal user check result:', { internalUser, internalError });
-
         if (internalUser) {
-          console.log('Internal user verified, navigating to dashboard...');
           navigate('/admin/dashboard');
         } else {
-          console.log('User not found in internal_users table');
           setError('Access denied. Internal users only.');
           await supabase.auth.signOut();
         }
       }
     } catch (err) {
-      // Debug: Log detailed error
       console.error('Authentication error:', err);
       setError('Invalid login credentials');
     } finally {
@@ -79,6 +82,26 @@ export default function AdminLoginPage() {
           <p className="text-[#666666]">Internal access only</p>
         </div>
         
+        {/* Temporary Debug Section */}
+        <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+          <h2 className="text-white text-sm font-semibold mb-2">Debug Information</h2>
+          <div className="text-xs text-gray-400">
+            <p className="mb-1">Supabase URL: {import.meta.env.VITE_SUPABASE_URL}</p>
+            <p className="mb-2">Internal Users:</p>
+            {debugError ? (
+              <p className="text-red-400">{debugError}</p>
+            ) : internalUsers.length > 0 ? (
+              <ul className="list-disc pl-4">
+                {internalUsers.map((user, index) => (
+                  <li key={index}>{user.email}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="italic">No internal users found</p>
+            )}
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-sm text-red-500">
