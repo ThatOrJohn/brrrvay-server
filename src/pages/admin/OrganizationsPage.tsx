@@ -119,8 +119,18 @@ export default function OrganizationsPage() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
-        .eq('organization_id', orgId)
+        .select(`
+          id,
+          email,
+          name,
+          role
+        `)
+        .in('id', (
+          supabase
+            .from('user_access')
+            .select('user_id')
+            .eq('organization_id', orgId)
+        ))
         .order('email');
       
       if (error) throw error;
