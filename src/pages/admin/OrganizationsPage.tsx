@@ -38,6 +38,17 @@ type PaginationState = {
   total: number;
 };
 
+type EditState = {
+  type: 'organization' | 'concept' | 'store' | 'user' | null;
+  id: string | null;
+  data: {
+    name?: string;
+    email?: string;
+    external_id?: string;
+    password?: string;
+  };
+};
+
 export default function OrganizationsPage() {
   const navigate = useNavigate();
   const { orgId, conceptId, storeId } = useParams();
@@ -49,6 +60,11 @@ export default function OrganizationsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editState, setEditState] = useState<EditState>({
+    type: null,
+    id: null,
+    data: {}
+  });
 
   // New user form state
   const [newUser, setNewUser] = useState({
@@ -95,6 +111,64 @@ export default function OrganizationsPage() {
       fetchStores(conceptId);
     }
   }, [conceptId, storesPagination.page]);
+
+  const handleEdit = async () => {
+    if (!editState.type || !editState.id) return;
+
+    try {
+      switch (editState.type) {
+        case 'organization':
+          await supabase
+            .from('organizations')
+            .update({ name: editState.data.name })
+            .eq('id', editState.id);
+          fetchOrganizations();
+          break;
+
+        case 'concept':
+          await supabase
+            .from('concepts')
+            .update({ name: editState.data.name })
+            .eq('id', editState.id);
+          if (selectedOrg) fetchConcepts(selectedOrg);
+          break;
+
+        case 'store':
+          await supabase
+            .from('stores')
+            .update({
+              name: editState.data.name,
+              external_id: editState.data.external_id
+            })
+            .eq('id', editState.id);
+          if (selectedConcept) fetchStores(selectedConcept);
+          break;
+
+        case 'user':
+          const updates: any = {
+            name: editState.data.name,
+            email: editState.data.email
+          };
+
+          if (editState.data.password) {
+            const salt = await bcrypt.genSalt(10);
+            updates.password_hash = await bcrypt.hash(editState.data.password, salt);
+          }
+
+          await supabase
+            .from('users')
+            .update(updates)
+            .eq('id', editState.id);
+          if (selectedOrg) fetchUsers(selectedOrg);
+          break;
+      }
+
+      setEditState({ type: null, id: null, data: {} });
+    } catch (err) {
+      setError(`Failed to update ${editState.type}`);
+      console.error(err);
+    }
+  };
 
   const fetchOrganizations = async () => {
     try {
@@ -196,11 +270,9 @@ export default function OrganizationsPage() {
     if (!selectedOrg || !newUser.selectedStores.length) return;
 
     try {
-      // Hash password
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(newUser.password, salt);
 
-      // Create user
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
@@ -214,7 +286,6 @@ export default function OrganizationsPage() {
 
       if (userError) throw userError;
 
-      // Create store access
       const storeAccess = newUser.selectedStores.map(storeId => ({
         user_id: userData.id,
         organization_id: selectedOrg,
@@ -227,7 +298,6 @@ export default function OrganizationsPage() {
 
       if (accessError) throw accessError;
 
-      // Reset form and refresh users
       setNewUser({
         email: '',
         name: '',
@@ -390,6 +460,148 @@ export default function OrganizationsPage() {
     );
   };
 
+  const renderEditModal = () => {
+    if (!editState.type || !editState.id) return null;
+
+    let item;
+    switch (editState.type) {
+      case 'organization':
+        item = organizations.find(o => o.id === editState.id);
+        break;
+      case 'concept':
+        item = concepts.find(c => c.id === editState.id);
+        break;
+      case 'store':
+        item = stores.find(s => s.id === editState.id);
+        break;
+      case 'user':
+        item = users.find(u => u.id === editState.id);
+        break;
+    }
+
+    if (!item) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div className="bg-[#1A1A1A] p-6 rounded-lg w-full max-w-md">
+          <h3 className="text-xl font-semibold mb-4">
+            Edit {editState.type}
+          </h3>
+
+          <div className="space-y-4">
+            {editState.type === 'user' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-[#666666] mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editState.data.email || item.email}
+                    onChange={(e) => setEditState(prev => ({
+                      ...prev,
+                      data: { ...prev.data, email: e.target.value }
+                    }))}
+                    className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#666666] mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editState.data.name || item.name || ''}
+                    onChange={(e) => setEditState(prev => ({
+                      ...prev,
+                      data: { ...prev.data, name: e.target.value }
+                    }))}
+                    className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#666666] mb-1">
+                    New Password (optional)
+                  </label>
+                  <input
+                    type="password"
+                    value={editState.data.password || ''}
+                    onChange={(e) => setEditState(prev => ({
+                      ...prev,
+                      data: { ...prev.data, password: e.target.value }
+                    }))}
+                    className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  />
+                </div>
+              </>
+            ) : editState.type === 'store' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-[#666666] mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editState.data.name || item.name}
+                    onChange={(e) => setEditState(prev => ({
+                      ...prev,
+                      data: { ...prev.data, name: e.target.value }
+                    }))}
+                    className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#666666] mb-1">
+                    External ID
+                  </label>
+                  <input
+                    type="text"
+                    value={editState.data.external_id || item.external_id || ''}
+                    onChange={(e) => setEditState(prev => ({
+                      ...prev,
+                      data: { ...prev.data, external_id: e.target.value }
+                    }))}
+                    className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-[#666666] mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={editState.data.name || item.name}
+                  onChange={(e) => setEditState(prev => ({
+                    ...prev,
+                    data: { ...prev.data, name: e.target.value }
+                  }))}
+                  className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-4 mt-6">
+            <button
+              onClick={() => setEditState({ type: null, id: null, data: {} })}
+              className="px-4 py-2 text-[#666666] hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEdit}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4">
       <h1 className="text-3xl font-bold mb-4">Organization Management</h1>
@@ -427,17 +639,28 @@ export default function OrganizationsPage() {
 
           <div className="space-y-2">
             {organizations.map(org => (
-              <Link
-                key={org.id}
-                to={`/admin/organizations/${org.id}`}
-                className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  selectedOrg === org.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'hover:bg-[#2A2A2A] text-[#666666]'
-                }`}
-              >
-                {org.name}
-              </Link>
+              <div key={org.id} className="flex items-center gap-2">
+                <Link
+                  to={`/admin/organizations/${org.id}`}
+                  className={`flex-1 text-left px-4 py-3 rounded-lg transition-colors ${
+                    selectedOrg === org.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'hover:bg-[#2A2A2A] text-[#666666]'
+                  }`}
+                >
+                  {org.name}
+                </Link>
+                <button
+                  onClick={() => setEditState({
+                    type: 'organization',
+                    id: org.id,
+                    data: { name: org.name }
+                  })}
+                  className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A]"
+                >
+                  Edit
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -468,17 +691,28 @@ export default function OrganizationsPage() {
 
           <div className="space-y-2">
             {concepts.map(concept => (
-              <Link
-                key={concept.id}
-                to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
-                className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  selectedConcept === concept.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'hover:bg-[#2A2A2A] text-[#666666]'
-                }`}
-              >
-                {concept.name}
-              </Link>
+              <div key={concept.id} className="flex items-center gap-2">
+                <Link
+                  to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
+                  className={`flex-1 text-left px-4 py-3 rounded-lg transition-colors ${
+                    selectedConcept === concept.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'hover:bg-[#2A2A2A] text-[#666666]'
+                  }`}
+                >
+                  {concept.name}
+                </Link>
+                <button
+                  onClick={() => setEditState({
+                    type: 'concept',
+                    id: concept.id,
+                    data: { name: concept.name }
+                  })}
+                  className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A]"
+                >
+                  Edit
+                </button>
+              </div>
             ))}
           </div>
 
@@ -524,18 +758,32 @@ export default function OrganizationsPage() {
 
           <div className="space-y-2">
             {stores.map(store => (
-              <Link
-                key={store.id}
-                to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
-                className="block px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]"
-              >
-                <div>{store.name}</div>
-                {store.external_id && (
-                  <div className="text-sm text-[#666666]">
-                    ID: {store.external_id}
-                  </div>
-                )}
-              </Link>
+              <div key={store.id} className="flex items-center gap-2">
+                <Link
+                  to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
+                  className="flex-1 px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]"
+                >
+                  <div>{store.name}</div>
+                  {store.external_id && (
+                    <div className="text-sm text-[#666666]">
+                      ID: {store.external_id}
+                    </div>
+                  )}
+                </Link>
+                <button
+                  onClick={() => setEditState({
+                    type: 'store',
+                    id: store.id,
+                    data: {
+                      name: store.name,
+                      external_id: store.external_id || ''
+                    }
+                  })}
+                  className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A]"
+                >
+                  Edit
+                </button>
+              </div>
             ))}
           </div>
 
@@ -648,8 +896,15 @@ export default function OrganizationsPage() {
                     <td className="py-3">{user.role}</td>
                     <td className="py-3">
                       <button
+                        onClick={() => setEditState({
+                          type: 'user',
+                          id: user.id,
+                          data: {
+                            email: user.email,
+                            name: user.name || ''
+                          }
+                        })}
                         className="text-indigo-400 hover:text-indigo-300"
-                        onClick={() => {/* TODO: Edit user */}}
                       >
                         Edit
                       </button>
@@ -661,6 +916,8 @@ export default function OrganizationsPage() {
           </div>
         </div>
       )}
+
+      {renderEditModal()}
     </div>
   );
 }
