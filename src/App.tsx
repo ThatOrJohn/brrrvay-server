@@ -21,6 +21,9 @@ function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
+          <Route path="organizations/:orgId" element={<OrganizationsPage />} />
+          <Route path="organizations/:orgId/concepts/:conceptId" element={<OrganizationsPage />} />
+          <Route path="organizations/:orgId/concepts/:conceptId/stores/:storeId" element={<OrganizationsPage />} />
         </Route>
 
         {/* 404 */}
