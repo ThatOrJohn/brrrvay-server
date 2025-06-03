@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import bcrypt from 'bcryptjs';
 
@@ -28,14 +28,8 @@ type User = {
   email: string;
   name: string | null;
   role: string;
-};
-
-type ExternalUser = {
-  id: string;
-  email: string;
-  name: string | null;
+  password_hash: string | null;
   created_at: string;
-  last_login: string | null;
 };
 
 type PaginationState = {
@@ -53,12 +47,11 @@ export default function OrganizationsPage() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [externalUsers, setExternalUsers] = useState<ExternalUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // New external user form state
-  const [newExternalUser, setNewExternalUser] = useState({
+  // New user form state
+  const [newUser, setNewUser] = useState({
     email: '',
     name: '',
     password: '',
@@ -93,7 +86,6 @@ export default function OrganizationsPage() {
       setSelectedOrg(orgId);
       fetchConcepts(orgId);
       fetchUsers(orgId);
-      fetchExternalUsers(orgId);
     }
   }, [orgId, conceptsPagination.page]);
 
@@ -173,50 +165,48 @@ export default function OrganizationsPage() {
     }
   };
 
-  const fetchExternalUsers = async (orgId: string) => {
+  const fetchUsers = async (orgId: string) => {
     try {
-      const { data: storeIds } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('concept_id', conceptId);
+      const { data: userAccess } = await supabase
+        .from('user_access')
+        .select('user_id')
+        .eq('organization_id', orgId);
 
-      if (!storeIds?.length) return;
+      if (!userAccess?.length) {
+        setUsers([]);
+        return;
+      }
 
-      const { data: userStores } = await supabase
-        .from('external_user_stores')
-        .select('external_user_id')
-        .in('store_id', storeIds.map(s => s.id));
-
-      if (!userStores?.length) return;
-
-      const { data: users } = await supabase
-        .from('external_users')
+      const { data: users, error } = await supabase
+        .from('users')
         .select('*')
-        .in('id', userStores.map(us => us.external_user_id))
+        .in('id', userAccess.map(ua => ua.user_id))
         .order('email');
 
-      setExternalUsers(users || []);
+      if (error) throw error;
+      setUsers(users || []);
     } catch (err) {
-      setError('Failed to fetch external users');
+      setError('Failed to fetch users');
       console.error(err);
     }
   };
 
-  const handleAddExternalUser = async (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrg || !newExternalUser.selectedStores.length) return;
+    if (!selectedOrg || !newUser.selectedStores.length) return;
 
     try {
       // Hash password
       const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash(newExternalUser.password, salt);
+      const passwordHash = await bcrypt.hash(newUser.password, salt);
 
       // Create user
       const { data: userData, error: userError } = await supabase
-        .from('external_users')
+        .from('users')
         .insert({
-          email: newExternalUser.email,
-          name: newExternalUser.name,
+          email: newUser.email,
+          name: newUser.name,
+          role: 'store_user',
           password_hash: passwordHash
         })
         .select()
@@ -225,28 +215,95 @@ export default function OrganizationsPage() {
       if (userError) throw userError;
 
       // Create store access
-      const storeAccess = newExternalUser.selectedStores.map(storeId => ({
-        external_user_id: userData.id,
+      const storeAccess = newUser.selectedStores.map(storeId => ({
+        user_id: userData.id,
+        organization_id: selectedOrg,
         store_id: storeId
       }));
 
       const { error: accessError } = await supabase
-        .from('external_user_stores')
+        .from('user_access')
         .insert(storeAccess);
 
       if (accessError) throw accessError;
 
       // Reset form and refresh users
-      setNewExternalUser({
+      setNewUser({
         email: '',
         name: '',
         password: '',
         selectedStores: []
       });
       
-      fetchExternalUsers(selectedOrg);
+      fetchUsers(selectedOrg);
     } catch (err) {
-      setError('Failed to create external user');
+      setError('Failed to create user');
+      console.error(err);
+    }
+  };
+
+  const handleAddOrganization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .insert([{ name: newOrgName }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      setOrganizations([...organizations, data]);
+      setNewOrgName('');
+    } catch (err) {
+      setError('Failed to add organization');
+      console.error(err);
+    }
+  };
+
+  const handleAddConcept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrg) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('concepts')
+        .insert([{
+          name: newConceptName,
+          organization_id: selectedOrg
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      setConcepts([...concepts, data]);
+      setNewConceptName('');
+    } catch (err) {
+      setError('Failed to add concept');
+      console.error(err);
+    }
+  };
+
+  const handleAddStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedConcept) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('stores')
+        .insert([{
+          name: newStoreName,
+          external_id: newStoreExternalId || null,
+          concept_id: selectedConcept
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      setStores([...stores, data]);
+      setNewStoreName('');
+      setNewStoreExternalId('');
+    } catch (err) {
+      setError('Failed to add store');
       console.error(err);
     }
   };
@@ -490,12 +547,12 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
-      {/* External Users Panel */}
+      {/* Users Panel */}
       {selectedOrg && (
         <div className="mt-8 bg-[#1A1A1A] border border-[#333333] rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-6">External Users</h2>
+          <h2 className="text-xl font-semibold mb-6">Store Users</h2>
 
-          <form onSubmit={handleAddExternalUser} className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleAddUser} className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[#666666] mb-1">
@@ -503,8 +560,8 @@ export default function OrganizationsPage() {
                 </label>
                 <input
                   type="email"
-                  value={newExternalUser.email}
-                  onChange={(e) => setNewExternalUser(prev => ({ ...prev, email: e.target.value }))}
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
                   className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
                   required
                 />
@@ -516,8 +573,8 @@ export default function OrganizationsPage() {
                 </label>
                 <input
                   type="text"
-                  value={newExternalUser.name}
-                  onChange={(e) => setNewExternalUser(prev => ({ ...prev, name: e.target.value }))}
+                  value={newUser.name}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
                 />
               </div>
@@ -528,8 +585,8 @@ export default function OrganizationsPage() {
                 </label>
                 <input
                   type="password"
-                  value={newExternalUser.password}
-                  onChange={(e) => setNewExternalUser(prev => ({ ...prev, password: e.target.value }))}
+                  value={newUser.password}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
                   className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
                   required
                 />
@@ -545,10 +602,10 @@ export default function OrganizationsPage() {
                   <label key={store.id} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      checked={newExternalUser.selectedStores.includes(store.id)}
+                      checked={newUser.selectedStores.includes(store.id)}
                       onChange={(e) => {
                         const storeId = store.id;
-                        setNewExternalUser(prev => ({
+                        setNewUser(prev => ({
                           ...prev,
                           selectedStores: e.target.checked
                             ? [...prev.selectedStores, storeId]
@@ -568,7 +625,7 @@ export default function OrganizationsPage() {
                 type="submit"
                 className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
               >
-                Add External User
+                Add Store User
               </button>
             </div>
           </form>
@@ -579,21 +636,16 @@ export default function OrganizationsPage() {
                 <tr className="text-left border-b border-[#333333]">
                   <th className="pb-2 font-medium text-[#666666]">Email</th>
                   <th className="pb-2 font-medium text-[#666666]">Name</th>
-                  <th className="pb-2 font-medium text-[#666666]">Last Login</th>
+                  <th className="pb-2 font-medium text-[#666666]">Role</th>
                   <th className="pb-2 font-medium text-[#666666]">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {externalUsers.map(user => (
+                {users.map(user => (
                   <tr key={user.id} className="border-b border-[#333333]">
                     <td className="py-3">{user.email}</td>
                     <td className="py-3">{user.name || '-'}</td>
-                    <td className="py-3">
-                      {user.last_login 
-                        ? new Date(user.last_login).toLocaleDateString()
-                        : 'Never'
-                      }
-                    </td>
+                    <td className="py-3">{user.role}</td>
                     <td className="py-3">
                       <button
                         className="text-indigo-400 hover:text-indigo-300"
