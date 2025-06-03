@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import AdminNavbar from '../components/AdminNavbar';
 import Sidebar from '../components/Sidebar';
+import BoltBadge from '../components/BoltBadge';
 import { supabase } from '../lib/supabase';
 
 export default function AdminLayout() {
@@ -35,6 +36,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      <BoltBadge />
     </div>
   );
 }
