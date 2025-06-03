@@ -16,7 +16,7 @@ function App() {
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminLoginPage />} />
-        <Route path="/admin" element={<AdminLayout>}>
+        <Route element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="search" element={<SearchPage />} />
         </Route>
@@ -24,7 +24,8 @@ function App() {
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    }
     </Router>
   );
 }
+
+export default App;
