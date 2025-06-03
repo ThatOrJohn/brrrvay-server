@@ -11,7 +11,7 @@ export default function BoltBadge() {
       <img
         src="/white_circle_360x360.png"
         alt="Powered by Bolt"
-        className="w-6 h-6 md:w-8 md:h-8"
+        className="w-4 h-4 md:w-6 md:h-6"
       />
     </a>
   );
