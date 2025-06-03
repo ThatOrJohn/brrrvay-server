@@ -112,24 +112,32 @@ export default function OrganizationsPage() {
 
   const fetchUsers = async (orgId: string) => {
     try {
-      const { data, error } = await supabase
+      // First, get the user IDs from user_access
+      const { data: userAccessData, error: userAccessError } = await supabase
+        .from('user_access')
+        .select('user_id')
+        .eq('organization_id', orgId);
+      
+      if (userAccessError) throw userAccessError;
+      
+      // Extract user IDs from the result
+      const userIds = userAccessData.map(row => row.user_id);
+      
+      // If no users found, set empty array and return
+      if (userIds.length === 0) {
+        setUsers([]);
+        return;
+      }
+
+      // Then fetch the actual user data
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select(`
-          id,
-          email,
-          name,
-          role
-        `)
-        .in('id', (
-          supabase
-            .from('user_access')
-            .select('user_id')
-            .eq('organization_id', orgId)
-        ))
+        .select('id, email, name, role')
+        .in('id', userIds)
         .order('email');
       
-      if (error) throw error;
-      setUsers(data || []);
+      if (userError) throw userError;
+      setUsers(userData || []);
     } catch (err) {
       setError('Failed to fetch users');
       console.error(err);
