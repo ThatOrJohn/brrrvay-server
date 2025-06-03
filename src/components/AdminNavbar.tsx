@@ -1,11 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from '../lib/supabase';
 
 export default function AdminNavbar() {
   const navigate = useNavigate();
@@ -34,4 +29,3 @@ export default function AdminNavbar() {
       </div>
     </nav>
   );
-}
