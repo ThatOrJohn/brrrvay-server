@@ -19,30 +19,52 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
+    // Debug: Log auth attempt
+    console.log('Attempting authentication with email:', email);
+    console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+
     try {
+      // Debug: Log auth request
+      console.log('Making auth request to Supabase...');
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      // Debug: Log auth response
+      console.log('Auth response:', { data, error });
+
       if (error) throw error;
 
       if (data?.user) {
-        // Check if user is an internal user
-        const { data: internalUser } = await supabase
+        // Debug: Log user data
+        console.log('User authenticated:', data.user);
+        
+        // Debug: Log internal user check
+        console.log('Checking if user is internal...');
+        
+        const { data: internalUser, error: internalError } = await supabase
           .from('internal_users')
           .select('*')
           .eq('id', data.user.id)
           .single();
 
+        // Debug: Log internal user check results
+        console.log('Internal user check result:', { internalUser, internalError });
+
         if (internalUser) {
+          console.log('Internal user verified, navigating to dashboard...');
           navigate('/admin/dashboard');
         } else {
+          console.log('User not found in internal_users table');
           setError('Access denied. Internal users only.');
           await supabase.auth.signOut();
         }
       }
     } catch (err) {
+      // Debug: Log detailed error
+      console.error('Authentication error:', err);
       setError('Invalid login credentials');
     } finally {
       setLoading(false);
