@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import PublicLayout from './layouts/PublicLayout';
-import AdminLayout from './layouts/AdminLayout';
-import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import AdminLoginPage from './pages/admin/LoginPage';
 import AdminDashboard from './pages/admin/Dashboard';
+import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -11,14 +11,11 @@ function App() {
     <Router>
       <Routes>
         {/* Public routes */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<HomePage />} />
-        </Route>
+        <Route path="/" element={<LoginPage />} />
 
         {/* Admin routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-        </Route>
+        <Route path="/admin" element={<AdminLoginPage />} />
+        <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
@@ -27,4 +24,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
