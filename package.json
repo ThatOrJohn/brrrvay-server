@@ -40,7 +40,6 @@
     "@supabase/auth-js": "^2.70.0",
     "@supabase/supabase-js": "^2.50.0",
     "@vitejs/plugin-react-swc": "^3.10.2",
-    "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "cmdk": "^1.1.1",

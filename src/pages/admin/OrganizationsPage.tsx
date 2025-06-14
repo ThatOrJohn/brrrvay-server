@@ -1,86 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import bcrypt from 'bcryptjs';
+
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import OrganizationsList from '@/components/admin/OrganizationsList';
 import ConceptsList from '@/components/admin/ConceptsList';
 import StoresList from '@/components/admin/StoresList';
 import UsersList from '@/components/admin/UsersList';
 import EditModal from '@/components/admin/EditModal';
 import Breadcrumbs from '@/components/admin/Breadcrumbs';
-
-// Simple hash function for passwords (for demo purposes)
-// In production, you should use proper server-side hashing
-async function simpleHash(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-type Organization = {
-  id: string;
-  name: string;
-  created_at: string;
-  trial_ends_at: string | null;
-  is_active: boolean;
-};
-
-type Concept = {
-  id: string;
-  name: string;
-  organization_id: string;
-  is_active: boolean;
-};
-
-type Store = {
-  id: string;
-  name: string;
-  concept_id: string;
-  external_id: string | null;
-  is_active: boolean;
-};
-
-type User = {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  password_hash: string | null;
-  created_at: string;
-};
-
-type PaginationState = {
-  page: number;
-  pageSize: number;
-  total: number;
-};
-
-type EditState = {
-  type: 'organization' | 'concept' | 'store' | 'user' | null;
-  id: string | null;
-  data: {
-    name?: string;
-    email?: string;
-    external_id?: string;
-    password?: string;
-  };
-};
+import { useOrganizationData } from '@/hooks/useOrganizationData';
+import { useOrganizationActions } from '@/hooks/useOrganizationActions';
+import { EditState, NewUser } from '@/types/admin';
 
 export default function OrganizationsPage() {
-  const navigate = useNavigate();
   const { orgId, conceptId, storeId } = useParams();
-  const { toast } = useToast();
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
-  const [concepts, setConcepts] = useState<Concept[]>([]);
-  const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
-  const [stores, setStores] = useState<Store[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const {
+    organizations,
+    selectedOrg,
+    concepts,
+    selectedConcept,
+    stores,
+    users,
+    loading,
+    error,
+    conceptsPagination,
+    storesPagination,
+    setOrganizations,
+    setConcepts,
+    setStores,
+    setError,
+    setConceptsPagination,
+    setStoresPagination,
+    fetchOrganizations,
+    fetchConcepts,
+    fetchStores,
+    fetchUsers,
+  } = useOrganizationData();
+
+  const {
+    handleToggleActive,
+    handleEdit,
+    handleAddUser,
+    handleAddOrganization,
+    handleAddConcept,
+    handleAddStore,
+  } = useOrganizationActions({
+    selectedOrg,
+    selectedConcept,
+    onRefreshOrganizations: fetchOrganizations,
+    onRefreshConcepts: fetchConcepts,
+    onRefreshStores: fetchStores,
+    onRefreshUsers: fetchUsers,
+  });
+
   const [editState, setEditState] = useState<EditState>({
     type: null,
     id: null,
@@ -88,24 +60,11 @@ export default function OrganizationsPage() {
   });
 
   // New user form state
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<NewUser>({
     email: '',
     name: '',
     password: '',
-    selectedStores: [] as string[]
-  });
-
-  // Pagination states
-  const [conceptsPagination, setConceptsPagination] = useState<PaginationState>({
-    page: 1,
-    pageSize: 10,
-    total: 0,
-  });
-
-  const [storesPagination, setStoresPagination] = useState<PaginationState>({
-    page: 1,
-    pageSize: 10,
-    total: 0,
+    selectedStores: []
   });
 
   // Form states
@@ -114,443 +73,45 @@ export default function OrganizationsPage() {
   const [newStoreName, setNewStoreName] = useState('');
   const [newStoreExternalId, setNewStoreExternalId] = useState('');
 
-  useEffect(() => {
-    fetchOrganizations();
-  }, []);
-
-  useEffect(() => {
-    if (orgId) {
-      setSelectedOrg(orgId);
-      // Clear dependent states when organization changes
-      setSelectedConcept(null);
-      setStores([]);
-      setConcepts([]);
-      fetchConcepts(orgId);
-      fetchUsers(orgId);
-    } else {
-      // Clear all dependent states when no organization is selected
-      setSelectedOrg(null);
-      setSelectedConcept(null);
-      setConcepts([]);
-      setStores([]);
-      setUsers([]);
-    }
-  }, [orgId, conceptsPagination.page]);
-
-  useEffect(() => {
-    if (conceptId && orgId) {
-      setSelectedConcept(conceptId);
-      fetchStores(conceptId);
-    } else {
-      // Clear stores when no concept is selected
-      setSelectedConcept(null);
-      setStores([]);
-    }
-  }, [conceptId, storesPagination.page]);
-
-  const fetchOrganizations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      
-      if (error) throw error;
-      setOrganizations(data || []);
-    } catch (err) {
-      setError('Failed to fetch organizations');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleNewUserChange = (field: string, value: string | string[]) => {
+    setNewUser(prev => ({ ...prev, [field]: value }));
   };
 
-  const fetchConcepts = async (orgId: string) => {
-    try {
-      // Check if we need to include inactive items (when navigating to specific concept/store)
-      const includeInactive = conceptId || storeId;
-      
-      const countQuery = supabase
-        .from('concepts')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', orgId);
-      
-      if (!includeInactive) {
-        countQuery.eq('is_active', true);
-      }
-      
-      const { count } = await countQuery;
-
-      const dataQuery = supabase
-        .from('concepts')
-        .select('*')
-        .eq('organization_id', orgId)
-        .order('name')
-        .range(
-          (conceptsPagination.page - 1) * conceptsPagination.pageSize,
-          conceptsPagination.page * conceptsPagination.pageSize - 1
-        );
-      
-      if (!includeInactive) {
-        dataQuery.eq('is_active', true);
-      }
-      
-      const { data, error } = await dataQuery;
-      
-      if (error) throw error;
-      setConcepts(data || []);
-      setConceptsPagination(prev => ({ ...prev, total: count || 0 }));
-    } catch (err) {
-      setError('Failed to fetch concepts');
-      console.error(err);
-    }
-  };
-
-  const fetchStores = async (conceptId: string) => {
-    try {
-      // Include inactive stores when navigating to a specific store
-      const includeInactive = storeId;
-      
-      const countQuery = supabase
-        .from('stores')
-        .select('*', { count: 'exact', head: true })
-        .eq('concept_id', conceptId);
-      
-      if (!includeInactive) {
-        countQuery.eq('is_active', true);
-      }
-      
-      const { count } = await countQuery;
-
-      const dataQuery = supabase
-        .from('stores')
-        .select('*')
-        .eq('concept_id', conceptId)
-        .order('name')
-        .range(
-          (storesPagination.page - 1) * storesPagination.pageSize,
-          storesPagination.page * storesPagination.pageSize - 1
-        );
-      
-      if (!includeInactive) {
-        dataQuery.eq('is_active', true);
-      }
-      
-      const { data, error } = await dataQuery;
-      
-      if (error) throw error;
-      setStores(data || []);
-      setStoresPagination(prev => ({ ...prev, total: count || 0 }));
-    } catch (err) {
-      setError('Failed to fetch stores');
-      console.error(err);
-    }
-  };
-
-  const fetchUsers = async (organizationId: string) => {
-    try {
-      console.log('Fetching users for organization:', organizationId);
-      
-      // First get all concepts for this organization
-      const { data: concepts, error: conceptsError } = await supabase
-        .from('concepts')
-        .select('id')
-        .eq('organization_id', organizationId);
-
-      if (conceptsError) throw conceptsError;
-      console.log('Found concepts:', concepts);
-
-      if (!concepts?.length) {
-        console.log('No concepts found for organization');
-        setUsers([]);
-        return;
-      }
-
-      // Get all stores for these concepts
-      const { data: orgStores, error: storesError } = await supabase
-        .from('stores')
-        .select('id')
-        .in('concept_id', concepts.map(c => c.id));
-
-      if (storesError) throw storesError;
-      console.log('Found stores:', orgStores);
-
-      if (!orgStores?.length) {
-        console.log('No stores found for concepts');
-        setUsers([]);
-        return;
-      }
-
-      // Get user access for these stores
-      const { data: userAccess, error: accessError } = await supabase
-        .from('user_access')
-        .select('user_id, store_id, organization_id, concept_id')
-        .in('store_id', orgStores.map(s => s.id));
-
-      if (accessError) throw accessError;
-      console.log('Found user access records:', userAccess);
-
-      if (!userAccess?.length) {
-        console.log('No user access records found');
-        setUsers([]);
-        return;
-      }
-
-      // Get unique user IDs
-      const userIds = [...new Set(userAccess.map(ua => ua.user_id))];
-      console.log('Unique user IDs:', userIds);
-
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', userIds)
-        .order('email');
-
-      if (error) throw error;
-      console.log('Fetched users:', users);
-      setUsers(users || []);
-    } catch (err) {
-      setError('Failed to fetch users');
-      console.error('Error fetching users:', err);
-    }
-  };
-
-  const handleToggleActive = async (type: 'organization' | 'concept' | 'store', id: string, currentStatus: boolean) => {
-    try {
-      const tableName = type === 'organization' ? 'organizations' : type === 'concept' ? 'concepts' : 'stores';
-      
-      await supabase
-        .from(tableName)
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
-
-      // Refresh the appropriate data
-      switch (type) {
-        case 'organization':
-          fetchOrganizations();
-          break;
-        case 'concept':
-          if (selectedOrg) fetchConcepts(selectedOrg);
-          break;
-        case 'store':
-          if (selectedConcept) fetchStores(selectedConcept);
-          break;
-      }
-    } catch (err) {
-      setError(`Failed to toggle ${type} status`);
-      console.error(err);
-    }
-  };
-
-  const handleEdit = async () => {
-    if (!editState.type || !editState.id) return;
-
-    try {
-      switch (editState.type) {
-        case 'organization':
-          await supabase
-            .from('organizations')
-            .update({ name: editState.data.name })
-            .eq('id', editState.id);
-          fetchOrganizations();
-          break;
-
-        case 'concept':
-          await supabase
-            .from('concepts')
-            .update({ name: editState.data.name })
-            .eq('id', editState.id);
-          if (selectedOrg) fetchConcepts(selectedOrg);
-          break;
-
-        case 'store':
-          await supabase
-            .from('stores')
-            .update({
-              name: editState.data.name,
-              external_id: editState.data.external_id
-            })
-            .eq('id', editState.id);
-          if (selectedConcept) fetchStores(selectedConcept);
-          break;
-
-        case 'user':
-          const updates: any = {
-            name: editState.data.name,
-            email: editState.data.email
-          };
-
-          if (editState.data.password) {
-            updates.password_hash = await simpleHash(editState.data.password);
-          }
-
-          await supabase
-            .from('users')
-            .update(updates)
-            .eq('id', editState.id);
-          if (selectedOrg) fetchUsers(selectedOrg);
-          break;
-      }
-
-      setEditState({ type: null, id: null, data: {} });
-      toast({
-        title: "Success",
-        description: `${editState.type} updated successfully`,
-      });
-    } catch (err) {
-      setError(`Failed to update ${editState.type}`);
-      toast({
-        title: "Error",
-        description: `Failed to update ${editState.type}`,
-        variant: "destructive",
-      });
-      console.error(err);
-    }
-  };
-
-  const handleAddUser = async (e: React.FormEvent) => {
+  const onAddOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
-    const currentOrgId = orgId;
-    const currentConceptId = conceptId;
-    if (!currentOrgId || !currentConceptId || !newUser.selectedStores.length) return;
+    await handleAddOrganization(newOrgName, organizations, setOrganizations);
+    setNewOrgName('');
+  };
 
-    try {
-      console.log('Creating user with data:', {
-        email: newUser.email,
-        name: newUser.name,
-        selectedStores: newUser.selectedStores,
-        orgId: currentOrgId,
-        conceptId: currentConceptId
-      });
+  const onAddConcept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleAddConcept(newConceptName, concepts, setConcepts);
+    setNewConceptName('');
+  };
 
-      const passwordHash = await simpleHash(newUser.password);
+  const onAddStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleAddStore(newStoreName, newStoreExternalId, stores, setStores);
+    setNewStoreName('');
+    setNewStoreExternalId('');
+  };
 
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .insert({
-          email: newUser.email,
-          name: newUser.name,
-          role: 'store_user',
-          password_hash: passwordHash
-        })
-        .select()
-        .single();
-
-      if (userError) throw userError;
-      console.log('Created user:', userData);
-
-      const storeAccess = newUser.selectedStores.map(storeId => ({
-        user_id: userData.id,
-        organization_id: currentOrgId,
-        concept_id: currentConceptId,
-        store_id: storeId
-      }));
-
-      console.log('Creating user access records:', storeAccess);
-
-      const { data: accessData, error: accessError } = await supabase
-        .from('user_access')
-        .insert(storeAccess)
-        .select();
-
-      if (accessError) throw accessError;
-      console.log('Created user access records:', accessData);
-
+  const onAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (orgId && conceptId) {
+      await handleAddUser(newUser, orgId, conceptId);
       setNewUser({
         email: '',
         name: '',
         password: '',
         selectedStores: []
       });
-      
-      toast({
-        title: "Success",
-        description: "User created successfully",
-      });
-      
-      // Refresh the users list
-      console.log('Refreshing users list...');
-      await fetchUsers(currentOrgId);
-    } catch (err) {
-      setError('Failed to create user');
-      toast({
-        title: "Error",
-        description: "Failed to create user",
-        variant: "destructive",
-      });
-      console.error('Error creating user:', err);
     }
   };
 
-  const handleAddOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const { data, error } = await supabase
-        .from('organizations')
-        .insert([{ name: newOrgName }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      setOrganizations([...organizations, data]);
-      setNewOrgName('');
-    } catch (err) {
-      setError('Failed to add organization');
-      console.error(err);
-    }
-  };
-
-  const handleAddConcept = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOrg) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('concepts')
-        .insert([{
-          name: newConceptName,
-          organization_id: selectedOrg
-        }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      setConcepts([...concepts, data]);
-      setNewConceptName('');
-    } catch (err) {
-      setError('Failed to add concept');
-      console.error(err);
-    }
-  };
-
-  const handleAddStore = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedConcept) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('stores')
-        .insert([{
-          name: newStoreName,
-          external_id: newStoreExternalId || null,
-          concept_id: selectedConcept
-        }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      setStores([...stores, data]);
-      setNewStoreName('');
-      setNewStoreExternalId('');
-    } catch (err) {
-      setError('Failed to add store');
-      console.error(err);
-    }
-  };
-
-  const handleNewUserChange = (field: string, value: string | string[]) => {
-    setNewUser(prev => ({ ...prev, [field]: value }));
+  const onEdit = async () => {
+    await handleEdit(editState, organizations, concepts, stores, users);
+    setEditState({ type: null, id: null, data: {} });
   };
 
   // Get current item for edit modal
@@ -607,7 +168,7 @@ export default function OrganizationsPage() {
             selectedOrgId={orgId || null}
             newOrgName={newOrgName}
             onNewOrgNameChange={setNewOrgName}
-            onAddOrganization={handleAddOrganization}
+            onAddOrganization={onAddOrganization}
             onEditOrganization={(org) => setEditState({
               type: 'organization',
               id: org.id,
@@ -621,7 +182,7 @@ export default function OrganizationsPage() {
             selectedConceptId={conceptId || null}
             newConceptName={newConceptName}
             onNewConceptNameChange={setNewConceptName}
-            onAddConcept={handleAddConcept}
+            onAddConcept={onAddConcept}
             onEditConcept={(concept) => setEditState({
               type: 'concept',
               id: concept.id,
@@ -640,7 +201,7 @@ export default function OrganizationsPage() {
             newStoreExternalId={newStoreExternalId}
             onNewStoreNameChange={setNewStoreName}
             onNewStoreExternalIdChange={setNewStoreExternalId}
-            onAddStore={handleAddStore}
+            onAddStore={onAddStore}
             onEditStore={(store) => setEditState({
               type: 'store',
               id: store.id,
@@ -660,7 +221,7 @@ export default function OrganizationsPage() {
             stores={stores}
             newUser={newUser}
             onNewUserChange={handleNewUserChange}
-            onAddUser={handleAddUser}
+            onAddUser={onAddUser}
             onEditUser={(user) => setEditState({
               type: 'user',
               id: user.id,
@@ -677,7 +238,7 @@ export default function OrganizationsPage() {
         editState={editState}
         item={getCurrentEditItem()}
         onEditStateChange={setEditState}
-        onSave={handleEdit}
+        onSave={onEdit}
         onToggleActive={handleToggleActive}
       />
     </div>
