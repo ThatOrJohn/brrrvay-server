@@ -90,18 +90,25 @@ export default function StoresList({
         <div className="flex-1 overflow-y-auto p-6 pb-2">
           <div className="space-y-2">
             {stores.map(store => (
-              <div key={store.id} className="flex items-center gap-2 group">
+              <div key={store.id} className={`flex items-center gap-2 group ${!store.is_active ? 'opacity-60' : ''}`}>
                 <Link
                   to={`/admin/organizations/${selectedOrgId}/concepts/${selectedConceptId}/stores/${store.id}`}
                   className={`flex-1 px-4 py-3 rounded-lg transition-colors ${
                     selectedStoreId === store.id
                       ? 'bg-indigo-600 text-white shadow-lg'
                       : 'bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]'
-                  }`}
+                  } ${!store.is_active ? 'border border-red-500/30' : ''}`}
                 >
-                  <div className="flex items-center mb-1">
-                    <Store className="w-4 h-4 mr-2 opacity-70" />
-                    <span className="font-medium">{store.name}</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center">
+                      <Store className="w-4 h-4 mr-2 opacity-70" />
+                      <span className="font-medium">{store.name}</span>
+                    </div>
+                    {!store.is_active && (
+                      <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">
+                        Inactive
+                      </span>
+                    )}
                   </div>
                   {store.external_id && (
                     <div className="text-sm text-[#666666] ml-6">

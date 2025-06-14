@@ -58,18 +58,25 @@ export default function OrganizationsList({
         <div className="flex-1 overflow-y-auto p-6 pb-2">
           <div className="space-y-2">
             {organizations.map(org => (
-              <div key={org.id} className="flex items-center gap-2 group">
+              <div key={org.id} className={`flex items-center gap-2 group ${!org.is_active ? 'opacity-60' : ''}`}>
                 <Link
                   to={`/admin/organizations/${org.id}`}
                   className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
                     selectedOrgId === org.id
                       ? 'bg-indigo-600 text-white shadow-lg'
                       : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
-                  }`}
+                  } ${!org.is_active ? 'border border-red-500/30' : ''}`}
                 >
-                  <div className="flex items-center">
-                    <Building className="w-4 h-4 mr-2 opacity-70" />
-                    {org.name}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Building className="w-4 h-4 mr-2 opacity-70" />
+                      {org.name}
+                    </div>
+                    {!org.is_active && (
+                      <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">
+                        Inactive
+                      </span>
+                    )}
                   </div>
                 </Link>
                 <button
