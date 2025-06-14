@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import AdminNavbar from '../components/AdminNavbar';
 import Sidebar from '../components/Sidebar';
 import BoltBadge from '../components/BoltBadge';
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
