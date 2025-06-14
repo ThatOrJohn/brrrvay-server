@@ -6,6 +6,7 @@ import AdminLoginPage from './pages/admin/LoginPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import SearchPage from './pages/admin/SearchPage';
 import OrganizationsPage from './pages/admin/OrganizationsPage';
+import PublicLayout from './layouts/PublicLayout';
 import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
 
@@ -14,7 +15,9 @@ function App() {
     <Router>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/" element={<PublicLayout />}>
+          <Route index element={<LoginPage />} />
+        </Route>
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminLoginPage />} />
