@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import bcrypt from 'bcryptjs';
 import OrganizationsList from '@/components/admin/OrganizationsList';
 import ConceptsList from '@/components/admin/ConceptsList';
@@ -9,6 +9,16 @@ import StoresList from '@/components/admin/StoresList';
 import UsersList from '@/components/admin/UsersList';
 import EditModal from '@/components/admin/EditModal';
 import Breadcrumbs from '@/components/admin/Breadcrumbs';
+
+// Simple hash function for passwords (for demo purposes)
+// In production, you should use proper server-side hashing
+async function simpleHash(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 type Organization = {
   id: string;
@@ -62,6 +72,7 @@ type EditState = {
 export default function OrganizationsPage() {
   const navigate = useNavigate();
   const { orgId, conceptId, storeId } = useParams();
+  const { toast } = useToast();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
@@ -371,8 +382,7 @@ export default function OrganizationsPage() {
           };
 
           if (editState.data.password) {
-            const salt = await bcrypt.genSalt(10);
-            updates.password_hash = await bcrypt.hash(editState.data.password, salt);
+            updates.password_hash = await simpleHash(editState.data.password);
           }
 
           await supabase
@@ -384,8 +394,17 @@ export default function OrganizationsPage() {
       }
 
       setEditState({ type: null, id: null, data: {} });
+      toast({
+        title: "Success",
+        description: `${editState.type} updated successfully`,
+      });
     } catch (err) {
       setError(`Failed to update ${editState.type}`);
+      toast({
+        title: "Error",
+        description: `Failed to update ${editState.type}`,
+        variant: "destructive",
+      });
       console.error(err);
     }
   };
@@ -405,8 +424,7 @@ export default function OrganizationsPage() {
         conceptId: currentConceptId
       });
 
-      const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash(newUser.password, salt);
+      const passwordHash = await simpleHash(newUser.password);
 
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -446,11 +464,21 @@ export default function OrganizationsPage() {
         selectedStores: []
       });
       
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      });
+      
       // Refresh the users list
       console.log('Refreshing users list...');
       await fetchUsers(currentOrgId);
     } catch (err) {
       setError('Failed to create user');
+      toast({
+        title: "Error",
+        description: "Failed to create user",
+        variant: "destructive",
+      });
       console.error('Error creating user:', err);
     }
   };
