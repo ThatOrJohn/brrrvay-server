@@ -392,7 +392,8 @@ export default function OrganizationsPage() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const currentOrgId = orgId;
-    if (!currentOrgId || !newUser.selectedStores.length) return;
+    const currentConceptId = conceptId;
+    if (!currentOrgId || !currentConceptId || !newUser.selectedStores.length) return;
 
     try {
       const salt = await bcrypt.genSalt(10);
@@ -415,6 +416,7 @@ export default function OrganizationsPage() {
       const storeAccess = newUser.selectedStores.map(storeId => ({
         user_id: userData.id,
         organization_id: currentOrgId,
+        concept_id: currentConceptId,
         store_id: storeId
       }));
 
