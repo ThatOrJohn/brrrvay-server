@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -273,7 +274,7 @@ export default function OrganizationsPage() {
       // Get user access for these stores
       const { data: userAccess, error: accessError } = await supabase
         .from('user_access')
-        .select('user_id')
+        .select('user_id, store_id, organization_id, concept_id')
         .in('store_id', orgStores.map(s => s.id));
 
       if (accessError) throw accessError;
@@ -396,6 +397,14 @@ export default function OrganizationsPage() {
     if (!currentOrgId || !currentConceptId || !newUser.selectedStores.length) return;
 
     try {
+      console.log('Creating user with data:', {
+        email: newUser.email,
+        name: newUser.name,
+        selectedStores: newUser.selectedStores,
+        orgId: currentOrgId,
+        conceptId: currentConceptId
+      });
+
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(newUser.password, salt);
 
@@ -420,12 +429,15 @@ export default function OrganizationsPage() {
         store_id: storeId
       }));
 
-      const { error: accessError } = await supabase
+      console.log('Creating user access records:', storeAccess);
+
+      const { data: accessData, error: accessError } = await supabase
         .from('user_access')
-        .insert(storeAccess);
+        .insert(storeAccess)
+        .select();
 
       if (accessError) throw accessError;
-      console.log('Created user access records:', storeAccess);
+      console.log('Created user access records:', accessData);
 
       setNewUser({
         email: '',
@@ -435,6 +447,7 @@ export default function OrganizationsPage() {
       });
       
       // Refresh the users list
+      console.log('Refreshing users list...');
       await fetchUsers(currentOrgId);
     } catch (err) {
       setError('Failed to create user');
