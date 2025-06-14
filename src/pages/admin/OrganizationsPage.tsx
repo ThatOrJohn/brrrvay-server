@@ -268,7 +268,9 @@ export default function OrganizationsPage() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrg || !newUser.selectedStores.length) return;
+    // Use the current orgId from URL params or selectedOrg state
+    const currentOrgId = orgId || selectedOrg;
+    if (!currentOrgId || !newUser.selectedStores.length) return;
 
     try {
       const salt = await bcrypt.genSalt(10);
@@ -289,7 +291,7 @@ export default function OrganizationsPage() {
 
       const storeAccess = newUser.selectedStores.map(storeId => ({
         user_id: userData.id,
-        organization_id: selectedOrg,
+        organization_id: currentOrgId,
         store_id: storeId
       }));
 
@@ -306,7 +308,8 @@ export default function OrganizationsPage() {
         selectedStores: []
       });
       
-      fetchUsers(selectedOrg);
+      // Refresh users list
+      fetchUsers(currentOrgId);
     } catch (err) {
       setError('Failed to create user');
       console.error(err);
@@ -650,7 +653,7 @@ export default function OrganizationsPage() {
               </form>
             </div>
 
-            <div className="flex flex-col h-[500px]">
+            <div className="flex flex-col" style={{ height: 'calc(600px - 200px)' }}>
               <div className="flex-1 overflow-y-auto p-6 pb-2">
                 <div className="space-y-2">
                   {organizations.map(org => (
@@ -658,7 +661,7 @@ export default function OrganizationsPage() {
                       <Link
                         to={`/admin/organizations/${org.id}`}
                         className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
-                          selectedOrg === org.id
+                          (selectedOrg === org.id || orgId === org.id)
                             ? 'bg-indigo-600 text-white shadow-lg'
                             : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
                         }`}
@@ -693,7 +696,7 @@ export default function OrganizationsPage() {
                 <h2 className="text-xl font-semibold">Concepts</h2>
               </div>
               
-              {selectedOrg ? (
+              {(selectedOrg || orgId) ? (
                 <form onSubmit={handleAddConcept} className="space-y-3">
                   <input
                     type="text"
@@ -717,15 +720,15 @@ export default function OrganizationsPage() {
               )}
             </div>
 
-            <div className="flex flex-col h-[500px]">
+            <div className="flex flex-col" style={{ height: 'calc(600px - 200px)' }}>
               <div className="flex-1 overflow-y-auto p-6 pb-2">
                 <div className="space-y-2">
                   {concepts.map(concept => (
                     <div key={concept.id} className="flex items-center gap-2 group">
                       <Link
-                        to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
+                        to={`/admin/organizations/${selectedOrg || orgId}/concepts/${concept.id}`}
                         className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
-                          selectedConcept === concept.id
+                          (selectedConcept === concept.id || conceptId === concept.id)
                             ? 'bg-indigo-600 text-white shadow-lg'
                             : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
                         }`}
@@ -750,10 +753,14 @@ export default function OrganizationsPage() {
                 </div>
               </div>
 
-              {selectedOrg && concepts.length > 0 && renderPagination(
-                conceptsPagination,
-                setConceptsPagination,
-                'Concepts:'
+              {(selectedOrg || orgId) && concepts.length > 0 && (
+                <div className="border-t border-[#333333] p-4 bg-[#1A1A1A]">
+                  {renderPagination(
+                    conceptsPagination,
+                    setConceptsPagination,
+                    'Concepts:'
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -766,7 +773,7 @@ export default function OrganizationsPage() {
                 <h2 className="text-xl font-semibold">Stores</h2>
               </div>
               
-              {selectedConcept ? (
+              {(selectedConcept || conceptId) ? (
                 <form onSubmit={handleAddStore} className="space-y-3">
                   <input
                     type="text"
@@ -797,14 +804,18 @@ export default function OrganizationsPage() {
               )}
             </div>
 
-            <div className="flex flex-col h-[500px]">
+            <div className="flex flex-col" style={{ height: 'calc(600px - 200px)' }}>
               <div className="flex-1 overflow-y-auto p-6 pb-2">
                 <div className="space-y-2">
                   {stores.map(store => (
                     <div key={store.id} className="flex items-center gap-2 group">
                       <Link
-                        to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
-                        className="flex-1 px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A] transition-colors"
+                        to={`/admin/organizations/${selectedOrg || orgId}/concepts/${selectedConcept || conceptId}/stores/${store.id}`}
+                        className={`flex-1 px-4 py-3 rounded-lg transition-colors ${
+                          storeId === store.id
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]'
+                        }`}
                       >
                         <div className="flex items-center mb-1">
                           <Store className="w-4 h-4 mr-2 opacity-70" />
@@ -834,17 +845,21 @@ export default function OrganizationsPage() {
                 </div>
               </div>
 
-              {selectedConcept && stores.length > 0 && renderPagination(
-                storesPagination,
-                setStoresPagination,
-                'Stores:'
+              {(selectedConcept || conceptId) && stores.length > 0 && (
+                <div className="border-t border-[#333333] p-4 bg-[#1A1A1A]">
+                  {renderPagination(
+                    storesPagination,
+                    setStoresPagination,
+                    'Stores:'
+                  )}
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Users Panel - Full Width */}
-        {selectedOrg && (
+        {/* Users Panel - Full Width - Show when we have an organization selected OR we're viewing an org from URL */}
+        {(selectedOrg || orgId) && (
           <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
             <div className="p-6 border-b border-[#333333]">
               <div className="flex items-center mb-6">
