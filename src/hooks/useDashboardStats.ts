@@ -9,7 +9,6 @@ export type DashboardStats = {
   totalStores: number;
   totalUsers: number;
   activeTrials: number;
-  recentGrievances: number;
 };
 
 export function useDashboardStats() {
@@ -20,7 +19,6 @@ export function useDashboardStats() {
     totalStores: 0,
     totalUsers: 0,
     activeTrials: 0,
-    recentGrievances: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,17 +67,6 @@ export function useDashboardStats() {
         
         if (trialsError) throw trialsError;
 
-        // Fetch recent grievances (last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        const { count: grievancesCount, error: grievancesError } = await supabase
-          .from('grievances')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', thirtyDaysAgo.toISOString());
-        
-        if (grievancesError) throw grievancesError;
-
         const totalOrganizations = orgs?.length || 0;
         const activeOrganizations = orgs?.filter(org => org.is_active).length || 0;
 
@@ -90,7 +77,6 @@ export function useDashboardStats() {
           totalStores: storesCount || 0,
           totalUsers: usersCount || 0,
           activeTrials: trialsCount || 0,
-          recentGrievances: grievancesCount || 0,
         });
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);

@@ -9,8 +9,7 @@ import {
   Monitor, 
   Clock, 
   BarChart, 
-  Settings,
-  TrendingUp 
+  Settings
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -21,7 +20,7 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="space-y-2">
                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -55,7 +54,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Organizations"
           value={stats.totalOrganizations}
@@ -78,14 +77,6 @@ export default function AdminDashboard() {
           icon={Activity}
           description="Across all organizations"
           color="purple"
-        />
-        
-        <StatCard
-          title="Recent Grievances"
-          value={stats.recentGrievances}
-          icon={TrendingUp}
-          description="Last 30 days"
-          color="orange"
         />
       </div>
 
