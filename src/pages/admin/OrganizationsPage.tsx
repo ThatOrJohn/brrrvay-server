@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -239,36 +238,56 @@ export default function OrganizationsPage() {
 
   const fetchUsers = async (organizationId: string) => {
     try {
-      // First get all stores for this organization
-      const { data: orgStores } = await supabase
+      console.log('Fetching users for organization:', organizationId);
+      
+      // First get all concepts for this organization
+      const { data: concepts, error: conceptsError } = await supabase
+        .from('concepts')
+        .select('id')
+        .eq('organization_id', organizationId);
+
+      if (conceptsError) throw conceptsError;
+      console.log('Found concepts:', concepts);
+
+      if (!concepts?.length) {
+        console.log('No concepts found for organization');
+        setUsers([]);
+        return;
+      }
+
+      // Get all stores for these concepts
+      const { data: orgStores, error: storesError } = await supabase
         .from('stores')
         .select('id')
-        .in('concept_id', 
-          (await supabase
-            .from('concepts')
-            .select('id')
-            .eq('organization_id', organizationId)
-          ).data?.map(c => c.id) || []
-        );
+        .in('concept_id', concepts.map(c => c.id));
+
+      if (storesError) throw storesError;
+      console.log('Found stores:', orgStores);
 
       if (!orgStores?.length) {
+        console.log('No stores found for concepts');
         setUsers([]);
         return;
       }
 
       // Get user access for these stores
-      const { data: userAccess } = await supabase
+      const { data: userAccess, error: accessError } = await supabase
         .from('user_access')
         .select('user_id')
         .in('store_id', orgStores.map(s => s.id));
 
+      if (accessError) throw accessError;
+      console.log('Found user access records:', userAccess);
+
       if (!userAccess?.length) {
+        console.log('No user access records found');
         setUsers([]);
         return;
       }
 
       // Get unique user IDs
       const userIds = [...new Set(userAccess.map(ua => ua.user_id))];
+      console.log('Unique user IDs:', userIds);
 
       const { data: users, error } = await supabase
         .from('users')
@@ -277,10 +296,11 @@ export default function OrganizationsPage() {
         .order('email');
 
       if (error) throw error;
+      console.log('Fetched users:', users);
       setUsers(users || []);
     } catch (err) {
       setError('Failed to fetch users');
-      console.error(err);
+      console.error('Error fetching users:', err);
     }
   };
 
@@ -390,6 +410,7 @@ export default function OrganizationsPage() {
         .single();
 
       if (userError) throw userError;
+      console.log('Created user:', userData);
 
       const storeAccess = newUser.selectedStores.map(storeId => ({
         user_id: userData.id,
@@ -402,6 +423,7 @@ export default function OrganizationsPage() {
         .insert(storeAccess);
 
       if (accessError) throw accessError;
+      console.log('Created user access records:', storeAccess);
 
       setNewUser({
         email: '',
@@ -410,10 +432,11 @@ export default function OrganizationsPage() {
         selectedStores: []
       });
       
-      fetchUsers(currentOrgId);
+      // Refresh the users list
+      await fetchUsers(currentOrgId);
     } catch (err) {
       setError('Failed to create user');
-      console.error(err);
+      console.error('Error creating user:', err);
     }
   };
 
