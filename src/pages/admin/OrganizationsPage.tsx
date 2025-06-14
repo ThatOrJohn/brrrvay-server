@@ -435,7 +435,7 @@ export default function OrganizationsPage() {
     const totalPages = Math.ceil(pagination.total / pagination.pageSize);
     
     return (
-      <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#333333]">
+      <div className="flex items-center justify-between mt-4 pt-4 px-4 border-t border-[#333333] bg-[#1A1A1A]">
         <span className="text-sm text-[#666666]">
           {label} {pagination.total} total
         </span>
@@ -443,17 +443,17 @@ export default function OrganizationsPage() {
           <button
             onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
             disabled={pagination.page === 1}
-            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50 hover:bg-[#3A3A3A] transition-colors"
+            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50 hover:bg-[#3A3A3A] transition-colors text-sm"
           >
             Previous
           </button>
-          <span className="px-3 py-1 bg-[#1A1A1A] text-white rounded-lg border border-[#333333]">
+          <span className="px-3 py-1 bg-[#0A0A0A] text-white rounded-lg border border-[#333333] text-sm min-w-[80px] text-center">
             Page {pagination.page} of {totalPages}
           </span>
           <button
             onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
             disabled={pagination.page >= totalPages}
-            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50 hover:bg-[#3A3A3A] transition-colors"
+            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50 hover:bg-[#3A3A3A] transition-colors text-sm"
           >
             Next
           </button>
@@ -625,7 +625,7 @@ export default function OrganizationsPage() {
         {/* Three Column Layout for larger screens */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Organizations Panel */}
-          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
+          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 border-b border-[#333333]">
               <div className="flex items-center mb-4">
                 <Building className="w-5 h-5 mr-2 text-indigo-400" />
@@ -650,41 +650,43 @@ export default function OrganizationsPage() {
               </form>
             </div>
 
-            <div className="p-6">
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {organizations.map(org => (
-                  <div key={org.id} className="flex items-center gap-2 group">
-                    <Link
-                      to={`/admin/organizations/${org.id}`}
-                      className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
-                        selectedOrg === org.id
-                          ? 'bg-indigo-600 text-white shadow-lg'
-                          : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <Building className="w-4 h-4 mr-2 opacity-70" />
-                        {org.name}
-                      </div>
-                    </Link>
-                    <button
-                      onClick={() => setEditState({
-                        type: 'organization',
-                        id: org.id,
-                        data: { name: org.name }
-                      })}
-                      className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+            <div className="flex flex-col h-[500px]">
+              <div className="flex-1 overflow-y-auto p-6 pb-2">
+                <div className="space-y-2">
+                  {organizations.map(org => (
+                    <div key={org.id} className="flex items-center gap-2 group">
+                      <Link
+                        to={`/admin/organizations/${org.id}`}
+                        className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
+                          selectedOrg === org.id
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <Building className="w-4 h-4 mr-2 opacity-70" />
+                          {org.name}
+                        </div>
+                      </Link>
+                      <button
+                        onClick={() => setEditState({
+                          type: 'organization',
+                          id: org.id,
+                          data: { name: org.name }
+                        })}
+                        className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Concepts Panel */}
-          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
+          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 border-b border-[#333333]">
               <div className="flex items-center mb-4">
                 <Layers className="w-5 h-5 mr-2 text-indigo-400" />
@@ -715,38 +717,40 @@ export default function OrganizationsPage() {
               )}
             </div>
 
-            <div className="p-6">
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {concepts.map(concept => (
-                  <div key={concept.id} className="flex items-center gap-2 group">
-                    <Link
-                      to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
-                      className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
-                        selectedConcept === concept.id
-                          ? 'bg-indigo-600 text-white shadow-lg'
-                          : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <Layers className="w-4 h-4 mr-2 opacity-70" />
-                        {concept.name}
-                      </div>
-                    </Link>
-                    <button
-                      onClick={() => setEditState({
-                        type: 'concept',
-                        id: concept.id,
-                        data: { name: concept.name }
-                      })}
-                      className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+            <div className="flex flex-col h-[500px]">
+              <div className="flex-1 overflow-y-auto p-6 pb-2">
+                <div className="space-y-2">
+                  {concepts.map(concept => (
+                    <div key={concept.id} className="flex items-center gap-2 group">
+                      <Link
+                        to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
+                        className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
+                          selectedConcept === concept.id
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <Layers className="w-4 h-4 mr-2 opacity-70" />
+                          {concept.name}
+                        </div>
+                      </Link>
+                      <button
+                        onClick={() => setEditState({
+                          type: 'concept',
+                          id: concept.id,
+                          data: { name: concept.name }
+                        })}
+                        className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {selectedOrg && renderPagination(
+              {selectedOrg && concepts.length > 0 && renderPagination(
                 conceptsPagination,
                 setConceptsPagination,
                 'Concepts:'
@@ -755,7 +759,7 @@ export default function OrganizationsPage() {
           </div>
 
           {/* Stores Panel */}
-          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
+          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 border-b border-[#333333]">
               <div className="flex items-center mb-4">
                 <Store className="w-5 h-5 mr-2 text-indigo-400" />
@@ -793,42 +797,44 @@ export default function OrganizationsPage() {
               )}
             </div>
 
-            <div className="p-6">
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {stores.map(store => (
-                  <div key={store.id} className="flex items-center gap-2 group">
-                    <Link
-                      to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
-                      className="flex-1 px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A] transition-colors"
-                    >
-                      <div className="flex items-center mb-1">
-                        <Store className="w-4 h-4 mr-2 opacity-70" />
-                        <span className="font-medium">{store.name}</span>
-                      </div>
-                      {store.external_id && (
-                        <div className="text-sm text-[#666666] ml-6">
-                          ID: {store.external_id}
+            <div className="flex flex-col h-[500px]">
+              <div className="flex-1 overflow-y-auto p-6 pb-2">
+                <div className="space-y-2">
+                  {stores.map(store => (
+                    <div key={store.id} className="flex items-center gap-2 group">
+                      <Link
+                        to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
+                        className="flex-1 px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A] transition-colors"
+                      >
+                        <div className="flex items-center mb-1">
+                          <Store className="w-4 h-4 mr-2 opacity-70" />
+                          <span className="font-medium">{store.name}</span>
                         </div>
-                      )}
-                    </Link>
-                    <button
-                      onClick={() => setEditState({
-                        type: 'store',
-                        id: store.id,
-                        data: {
-                          name: store.name,
-                          external_id: store.external_id || ''
-                        }
-                      })}
-                      className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                        {store.external_id && (
+                          <div className="text-sm text-[#666666] ml-6">
+                            ID: {store.external_id}
+                          </div>
+                        )}
+                      </Link>
+                      <button
+                        onClick={() => setEditState({
+                          type: 'store',
+                          id: store.id,
+                          data: {
+                            name: store.name,
+                            external_id: store.external_id || ''
+                          }
+                        })}
+                        className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {selectedConcept && renderPagination(
+              {selectedConcept && stores.length > 0 && renderPagination(
                 storesPagination,
                 setStoresPagination,
                 'Stores:'
