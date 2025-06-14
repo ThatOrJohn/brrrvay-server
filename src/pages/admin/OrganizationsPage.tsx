@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import bcrypt from 'bcryptjs';
+import { Plus, Edit2, User, Building, Store, Layers } from 'lucide-react';
 
 type Organization = {
   id: string;
@@ -387,7 +388,7 @@ export default function OrganizationsPage() {
         <Link 
           key="org" 
           to={`/admin/organizations/${selectedOrg}`}
-          className="text-indigo-400 hover:text-indigo-300"
+          className="text-indigo-400 hover:text-indigo-300 transition-colors"
         >
           {org?.name}
         </Link>
@@ -401,7 +402,7 @@ export default function OrganizationsPage() {
         <Link 
           key="concept"
           to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}`}
-          className="text-indigo-400 hover:text-indigo-300"
+          className="text-indigo-400 hover:text-indigo-300 transition-colors"
         >
           {concept?.name}
         </Link>
@@ -419,7 +420,8 @@ export default function OrganizationsPage() {
     }
 
     return (
-      <div className="mb-6 text-lg">
+      <div className="mb-8 text-lg flex items-center">
+        <Building className="w-5 h-5 mr-2 text-[#666666]" />
         {crumbs}
       </div>
     );
@@ -433,7 +435,7 @@ export default function OrganizationsPage() {
     const totalPages = Math.ceil(pagination.total / pagination.pageSize);
     
     return (
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#333333]">
         <span className="text-sm text-[#666666]">
           {label} {pagination.total} total
         </span>
@@ -441,17 +443,17 @@ export default function OrganizationsPage() {
           <button
             onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
             disabled={pagination.page === 1}
-            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50"
+            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50 hover:bg-[#3A3A3A] transition-colors"
           >
             Previous
           </button>
-          <span className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg">
+          <span className="px-3 py-1 bg-[#1A1A1A] text-white rounded-lg border border-[#333333]">
             Page {pagination.page} of {totalPages}
           </span>
           <button
             onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
             disabled={pagination.page >= totalPages}
-            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50"
+            className="px-3 py-1 bg-[#2A2A2A] text-white rounded-lg disabled:opacity-50 hover:bg-[#3A3A3A] transition-colors"
           >
             Next
           </button>
@@ -603,319 +605,375 @@ export default function OrganizationsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4">
-      <h1 className="text-3xl font-bold mb-4">Organization Management</h1>
+    <div className="max-w-7xl mx-auto px-4 pb-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Organization Management</h1>
+        <p className="text-[#666666]">Manage your organizations, concepts, stores, and users</p>
+      </div>
       
       {renderBreadcrumbs()}
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-6 text-sm text-red-500">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-8 text-sm text-red-500 flex items-center">
+          <div className="w-4 h-4 bg-red-500 rounded-full mr-3 flex-shrink-0"></div>
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Organizations Panel */}
-        <div className="bg-[#1A1A1A] border border-[#333333] rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Organizations</h2>
-          
-          <form onSubmit={handleAddOrganization} className="mb-6">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newOrgName}
-                onChange={(e) => setNewOrgName(e.target.value)}
-                placeholder="New organization name"
-                className="flex-1 rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
-                Add
-              </button>
-            </div>
-          </form>
-
-          <div className="space-y-2">
-            {organizations.map(org => (
-              <div key={org.id} className="flex items-center gap-2">
-                <Link
-                  to={`/admin/organizations/${org.id}`}
-                  className={`flex-1 text-left px-4 py-3 rounded-lg transition-colors ${
-                    selectedOrg === org.id
-                      ? 'bg-indigo-600 text-white'
-                      : 'hover:bg-[#2A2A2A] text-[#666666]'
-                  }`}
-                >
-                  {org.name}
-                </Link>
-                <button
-                  onClick={() => setEditState({
-                    type: 'organization',
-                    id: org.id,
-                    data: { name: org.name }
-                  })}
-                  className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A]"
-                >
-                  Edit
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Concepts Panel */}
-        <div className="bg-[#1A1A1A] border border-[#333333] rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Concepts</h2>
-          
-          {selectedOrg && (
-            <form onSubmit={handleAddConcept} className="mb-6">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newConceptName}
-                  onChange={(e) => setNewConceptName(e.target.value)}
-                  placeholder="New concept name"
-                  className="flex-1 rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                >
-                  Add
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="space-y-2">
-            {concepts.map(concept => (
-              <div key={concept.id} className="flex items-center gap-2">
-                <Link
-                  to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
-                  className={`flex-1 text-left px-4 py-3 rounded-lg transition-colors ${
-                    selectedConcept === concept.id
-                      ? 'bg-indigo-600 text-white'
-                      : 'hover:bg-[#2A2A2A] text-[#666666]'
-                  }`}
-                >
-                  {concept.name}
-                </Link>
-                <button
-                  onClick={() => setEditState({
-                    type: 'concept',
-                    id: concept.id,
-                    data: { name: concept.name }
-                  })}
-                  className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A]"
-                >
-                  Edit
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {selectedOrg && renderPagination(
-            conceptsPagination,
-            setConceptsPagination,
-            'Concepts:'
-          )}
-        </div>
-
-        {/* Stores Panel */}
-        <div className="bg-[#1A1A1A] border border-[#333333] rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Stores</h2>
-          
-          {selectedConcept && (
-            <form onSubmit={handleAddStore} className="mb-6 space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newStoreName}
-                  onChange={(e) => setNewStoreName(e.target.value)}
-                  placeholder="New store name"
-                  className="flex-1 rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
-                />
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newStoreExternalId}
-                  onChange={(e) => setNewStoreExternalId(e.target.value)}
-                  placeholder="External ID (optional)"
-                  className="flex-1 rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                >
-                  Add
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="space-y-2">
-            {stores.map(store => (
-              <div key={store.id} className="flex items-center gap-2">
-                <Link
-                  to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
-                  className="flex-1 px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]"
-                >
-                  <div>{store.name}</div>
-                  {store.external_id && (
-                    <div className="text-sm text-[#666666]">
-                      ID: {store.external_id}
-                    </div>
-                  )}
-                </Link>
-                <button
-                  onClick={() => setEditState({
-                    type: 'store',
-                    id: store.id,
-                    data: {
-                      name: store.name,
-                      external_id: store.external_id || ''
-                    }
-                  })}
-                  className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A]"
-                >
-                  Edit
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {selectedConcept && renderPagination(
-            storesPagination,
-            setStoresPagination,
-            'Stores:'
-          )}
-        </div>
-      </div>
-
-      {/* Users Panel */}
-      {selectedOrg && (
-        <div className="mt-8 bg-[#1A1A1A] border border-[#333333] rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-6">Store Users</h2>
-
-          <form onSubmit={handleAddUser} className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#666666] mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
-                  required
-                />
+      {/* Main Content Grid - Responsive Layout */}
+      <div className="space-y-8">
+        {/* Three Column Layout for larger screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Organizations Panel */}
+          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
+            <div className="p-6 border-b border-[#333333]">
+              <div className="flex items-center mb-4">
+                <Building className="w-5 h-5 mr-2 text-indigo-400" />
+                <h2 className="text-xl font-semibold">Organizations</h2>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-[#666666] mb-1">
-                  Name
-                </label>
+              <form onSubmit={handleAddOrganization} className="space-y-3">
                 <input
                   type="text"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  placeholder="New organization name"
+                  className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#666666] mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                  className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white"
-                  required
-                />
-              </div>
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Organization
+                </button>
+              </form>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#666666] mb-1">
-                Accessible Stores
-              </label>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+            <div className="p-6">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {organizations.map(org => (
+                  <div key={org.id} className="flex items-center gap-2 group">
+                    <Link
+                      to={`/admin/organizations/${org.id}`}
+                      className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
+                        selectedOrg === org.id
+                          ? 'bg-indigo-600 text-white shadow-lg'
+                          : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <Building className="w-4 h-4 mr-2 opacity-70" />
+                        {org.name}
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => setEditState({
+                        type: 'organization',
+                        id: org.id,
+                        data: { name: org.name }
+                      })}
+                      className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Concepts Panel */}
+          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
+            <div className="p-6 border-b border-[#333333]">
+              <div className="flex items-center mb-4">
+                <Layers className="w-5 h-5 mr-2 text-indigo-400" />
+                <h2 className="text-xl font-semibold">Concepts</h2>
+              </div>
+              
+              {selectedOrg ? (
+                <form onSubmit={handleAddConcept} className="space-y-3">
+                  <input
+                    type="text"
+                    value={newConceptName}
+                    onChange={(e) => setNewConceptName(e.target.value)}
+                    placeholder="New concept name"
+                    className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Concept
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-[#666666] text-sm">Select an organization first</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {concepts.map(concept => (
+                  <div key={concept.id} className="flex items-center gap-2 group">
+                    <Link
+                      to={`/admin/organizations/${selectedOrg}/concepts/${concept.id}`}
+                      className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
+                        selectedConcept === concept.id
+                          ? 'bg-indigo-600 text-white shadow-lg'
+                          : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <Layers className="w-4 h-4 mr-2 opacity-70" />
+                        {concept.name}
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => setEditState({
+                        type: 'concept',
+                        id: concept.id,
+                        data: { name: concept.name }
+                      })}
+                      className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {selectedOrg && renderPagination(
+                conceptsPagination,
+                setConceptsPagination,
+                'Concepts:'
+              )}
+            </div>
+          </div>
+
+          {/* Stores Panel */}
+          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
+            <div className="p-6 border-b border-[#333333]">
+              <div className="flex items-center mb-4">
+                <Store className="w-5 h-5 mr-2 text-indigo-400" />
+                <h2 className="text-xl font-semibold">Stores</h2>
+              </div>
+              
+              {selectedConcept ? (
+                <form onSubmit={handleAddStore} className="space-y-3">
+                  <input
+                    type="text"
+                    value={newStoreName}
+                    onChange={(e) => setNewStoreName(e.target.value)}
+                    placeholder="Store name"
+                    className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                  />
+                  <input
+                    type="text"
+                    value={newStoreExternalId}
+                    onChange={(e) => setNewStoreExternalId(e.target.value)}
+                    placeholder="External ID (optional)"
+                    className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Store
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-[#666666] text-sm">Select a concept first</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {stores.map(store => (
-                  <label key={store.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={newUser.selectedStores.includes(store.id)}
-                      onChange={(e) => {
-                        const storeId = store.id;
-                        setNewUser(prev => ({
-                          ...prev,
-                          selectedStores: e.target.checked
-                            ? [...prev.selectedStores, storeId]
-                            : prev.selectedStores.filter(id => id !== storeId)
-                        }));
-                      }}
-                      className="rounded bg-[#2A2A2A] border-[#333333] text-indigo-600"
-                    />
-                    <span className="text-white">{store.name}</span>
-                  </label>
+                  <div key={store.id} className="flex items-center gap-2 group">
+                    <Link
+                      to={`/admin/organizations/${selectedOrg}/concepts/${selectedConcept}/stores/${store.id}`}
+                      className="flex-1 px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A] transition-colors"
+                    >
+                      <div className="flex items-center mb-1">
+                        <Store className="w-4 h-4 mr-2 opacity-70" />
+                        <span className="font-medium">{store.name}</span>
+                      </div>
+                      {store.external_id && (
+                        <div className="text-sm text-[#666666] ml-6">
+                          ID: {store.external_id}
+                        </div>
+                      )}
+                    </Link>
+                    <button
+                      onClick={() => setEditState({
+                        type: 'store',
+                        id: store.id,
+                        data: {
+                          name: store.name,
+                          external_id: store.external_id || ''
+                        }
+                      })}
+                      className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-[#2A2A2A] transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 ))}
               </div>
-            </div>
 
-            <div className="md:col-span-2">
-              <button
-                type="submit"
-                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
-                Add Store User
-              </button>
+              {selectedConcept && renderPagination(
+                storesPagination,
+                setStoresPagination,
+                'Stores:'
+              )}
             </div>
-          </form>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left border-b border-[#333333]">
-                  <th className="pb-2 font-medium text-[#666666]">Email</th>
-                  <th className="pb-2 font-medium text-[#666666]">Name</th>
-                  <th className="pb-2 font-medium text-[#666666]">Role</th>
-                  <th className="pb-2 font-medium text-[#666666]">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user.id} className="border-b border-[#333333]">
-                    <td className="py-3">{user.email}</td>
-                    <td className="py-3">{user.name || '-'}</td>
-                    <td className="py-3">{user.role}</td>
-                    <td className="py-3">
-                      <button
-                        onClick={() => setEditState({
-                          type: 'user',
-                          id: user.id,
-                          data: {
-                            email: user.email,
-                            name: user.name || ''
-                          }
-                        })}
-                        className="text-indigo-400 hover:text-indigo-300"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
-      )}
+
+        {/* Users Panel - Full Width */}
+        {selectedOrg && (
+          <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
+            <div className="p-6 border-b border-[#333333]">
+              <div className="flex items-center mb-6">
+                <User className="w-5 h-5 mr-2 text-indigo-400" />
+                <h2 className="text-xl font-semibold">Store Users</h2>
+              </div>
+
+              <form onSubmit={handleAddUser} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#999999] mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-[#999999] mb-2">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#999999] mb-2">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                      className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#999999] mb-2">
+                    Accessible Stores
+                  </label>
+                  <div className="bg-[#2A2A2A] border border-[#333333] rounded-lg p-4 max-h-[200px] overflow-y-auto">
+                    <div className="space-y-3">
+                      {stores.map(store => (
+                        <label key={store.id} className="flex items-center space-x-3 cursor-pointer hover:bg-[#333333] p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={newUser.selectedStores.includes(store.id)}
+                            onChange={(e) => {
+                              const storeId = store.id;
+                              setNewUser(prev => ({
+                                ...prev,
+                                selectedStores: e.target.checked
+                                  ? [...prev.selectedStores, storeId]
+                                  : prev.selectedStores.filter(id => id !== storeId)
+                              }));
+                            }}
+                            className="rounded bg-[#1A1A1A] border-[#333333] text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-white text-sm">{store.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Store User
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="p-6">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left border-b border-[#333333]">
+                      <th className="pb-3 font-medium text-[#999999]">Email</th>
+                      <th className="pb-3 font-medium text-[#999999]">Name</th>
+                      <th className="pb-3 font-medium text-[#999999]">Role</th>
+                      <th className="pb-3 font-medium text-[#999999]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(user => (
+                      <tr key={user.id} className="border-b border-[#333333] hover:bg-[#2A2A2A] transition-colors">
+                        <td className="py-4 text-white">{user.email}</td>
+                        <td className="py-4 text-[#999999]">{user.name || '-'}</td>
+                        <td className="py-4">
+                          <span className="px-2 py-1 bg-[#2A2A2A] text-[#999999] rounded text-xs font-medium">
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="py-4">
+                          <button
+                            onClick={() => setEditState({
+                              type: 'user',
+                              id: user.id,
+                              data: {
+                                email: user.email,
+                                name: user.name || ''
+                              }
+                            })}
+                            className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {renderEditModal()}
     </div>
