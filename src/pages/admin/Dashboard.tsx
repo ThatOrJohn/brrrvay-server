@@ -1,19 +1,44 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { StatCard } from '@/components/admin/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { 
   Database, 
   Activity, 
   Monitor, 
   Clock, 
   BarChart, 
-  Settings
+  Settings,
+  Plus,
+  Users,
+  Timer,
+  Cog
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { stats, loading, error } = useDashboardStats();
+  const navigate = useNavigate();
+
+  const handleAddOrganization = () => {
+    navigate('/admin/organizations');
+  };
+
+  const handleViewAllUsers = () => {
+    navigate('/admin/search');
+  };
+
+  const handleManageTrials = () => {
+    // Navigate to organizations page where trials can be managed
+    navigate('/admin/organizations');
+  };
+
+  const handleSystemSettings = () => {
+    // For now, navigate to dashboard - could be expanded later
+    navigate('/admin/dashboard');
+  };
 
   if (loading) {
     return (
@@ -114,18 +139,41 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <Button 
+              onClick={handleAddOrganization}
+              className="flex items-center gap-2"
+              variant="default"
+            >
+              <Plus className="w-4 h-4" />
               Add Organization
-            </button>
-            <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            </Button>
+            
+            <Button 
+              onClick={handleViewAllUsers}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              <Users className="w-4 h-4" />
               View All Users
-            </button>
-            <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            </Button>
+            
+            <Button 
+              onClick={handleManageTrials}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              <Timer className="w-4 h-4" />
               Manage Trials
-            </button>
-            <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+            </Button>
+            
+            <Button 
+              onClick={handleSystemSettings}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              <Cog className="w-4 h-4" />
               System Settings
-            </button>
+            </Button>
           </div>
         </CardContent>
       </Card>
