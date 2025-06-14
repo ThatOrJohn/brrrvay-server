@@ -6,11 +6,13 @@ interface UseEntityActionsProps {
   onRefresh: () => void;
 }
 
+type TableName = 'organizations' | 'concepts' | 'stores' | 'users';
+
 export function useEntityActions({ onRefresh }: UseEntityActionsProps) {
   const { toast } = useToast();
 
   const handleToggleActive = async (
-    tableName: string,
+    tableName: TableName,
     id: string,
     currentStatus: boolean,
     entityType: string
