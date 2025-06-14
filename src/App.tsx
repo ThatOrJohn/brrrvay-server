@@ -8,7 +8,6 @@ import SearchPage from './pages/admin/SearchPage';
 import OrganizationsPage from './pages/admin/OrganizationsPage';
 import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
-import BoltBadge from './components/BoltBadge';
 
 function App() {
   return (
@@ -31,7 +30,6 @@ function App() {
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <BoltBadge />
     </Router>
   );
 }
