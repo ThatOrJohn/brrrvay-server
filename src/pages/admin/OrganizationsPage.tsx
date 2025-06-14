@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -157,22 +156,35 @@ export default function OrganizationsPage() {
 
   const fetchConcepts = async (orgId: string) => {
     try {
-      const { count } = await supabase
+      // Check if we need to include inactive items (when navigating to specific concept/store)
+      const includeInactive = conceptId || storeId;
+      
+      const countQuery = supabase
         .from('concepts')
         .select('*', { count: 'exact', head: true })
-        .eq('organization_id', orgId)
-        .eq('is_active', true);
+        .eq('organization_id', orgId);
+      
+      if (!includeInactive) {
+        countQuery.eq('is_active', true);
+      }
+      
+      const { count } = await countQuery;
 
-      const { data, error } = await supabase
+      const dataQuery = supabase
         .from('concepts')
         .select('*')
         .eq('organization_id', orgId)
-        .eq('is_active', true)
         .order('name')
         .range(
           (conceptsPagination.page - 1) * conceptsPagination.pageSize,
           conceptsPagination.page * conceptsPagination.pageSize - 1
         );
+      
+      if (!includeInactive) {
+        dataQuery.eq('is_active', true);
+      }
+      
+      const { data, error } = await dataQuery;
       
       if (error) throw error;
       setConcepts(data || []);
@@ -185,22 +197,35 @@ export default function OrganizationsPage() {
 
   const fetchStores = async (conceptId: string) => {
     try {
-      const { count } = await supabase
+      // Include inactive stores when navigating to a specific store
+      const includeInactive = storeId;
+      
+      const countQuery = supabase
         .from('stores')
         .select('*', { count: 'exact', head: true })
-        .eq('concept_id', conceptId)
-        .eq('is_active', true);
+        .eq('concept_id', conceptId);
+      
+      if (!includeInactive) {
+        countQuery.eq('is_active', true);
+      }
+      
+      const { count } = await countQuery;
 
-      const { data, error } = await supabase
+      const dataQuery = supabase
         .from('stores')
         .select('*')
         .eq('concept_id', conceptId)
-        .eq('is_active', true)
         .order('name')
         .range(
           (storesPagination.page - 1) * storesPagination.pageSize,
           storesPagination.page * storesPagination.pageSize - 1
         );
+      
+      if (!includeInactive) {
+        dataQuery.eq('is_active', true);
+      }
+      
+      const { data, error } = await dataQuery;
       
       if (error) throw error;
       setStores(data || []);

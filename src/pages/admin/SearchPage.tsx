@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,8 @@ type SearchResult = {
   name: string;
   details?: string;
   is_active?: boolean;
+  organization_id?: string;
+  concept_id?: string;
 };
 
 export default function SearchPage() {
@@ -95,6 +96,7 @@ export default function SearchPage() {
           name: concept.name,
           details: `Organization: ${concept.organization_id}`,
           is_active: concept.is_active,
+          organization_id: concept.organization_id,
         })) || []),
         ...(stores?.map(store => ({
           type: 'store' as const,
@@ -102,6 +104,7 @@ export default function SearchPage() {
           name: store.name,
           details: `Concept: ${store.concept_id}`,
           is_active: store.is_active,
+          concept_id: store.concept_id,
         })) || []),
         ...(users?.map(user => ({
           type: 'user' as const,
@@ -119,16 +122,29 @@ export default function SearchPage() {
     }
   };
 
-  const handleViewDetails = (result: SearchResult) => {
+  const handleViewDetails = async (result: SearchResult) => {
     switch (result.type) {
       case 'organization':
-        navigate('/admin/organizations', { state: { selectedOrgId: result.id } });
+        navigate(`/admin/organizations/${result.id}`);
         break;
       case 'concept':
-        navigate('/admin/organizations', { state: { selectedConceptId: result.id } });
+        if (result.organization_id) {
+          navigate(`/admin/organizations/${result.organization_id}/concepts/${result.id}`);
+        }
         break;
       case 'store':
-        navigate('/admin/organizations', { state: { selectedStoreId: result.id } });
+        if (result.concept_id) {
+          // Get the organization_id for this concept to build the full route
+          const { data: concept } = await supabase
+            .from('concepts')
+            .select('organization_id')
+            .eq('id', result.concept_id)
+            .single();
+          
+          if (concept) {
+            navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}`);
+          }
+        }
         break;
       case 'user':
         // TODO: Implement user details view
