@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,12 +77,18 @@ export default function SearchPage() {
       
       const { data: stores } = await storeQuery;
 
-      // Search users (users don't have is_active, so we always show them)
-      const { data: users } = await supabase
+      // Search users
+      const userQuery = supabase
         .from('users')
-        .select('id, email, name, role')
+        .select('id, email, name, role, is_active')
         .or(`email.ilike.%${query}%,name.ilike.%${query}%`)
         .limit(5);
+      
+      if (!showInactive) {
+        userQuery.eq('is_active', true);
+      }
+      
+      const { data: users } = await userQuery;
 
       const searchResults: SearchResult[] = [
         ...(orgs?.map(org => ({
@@ -111,6 +118,7 @@ export default function SearchPage() {
           id: user.id,
           name: user.name || user.email,
           details: `Role: ${user.role}`,
+          is_active: user.is_active,
         })) || []),
       ];
 
@@ -147,7 +155,19 @@ export default function SearchPage() {
         }
         break;
       case 'user':
-        // TODO: Implement user details view
+        // Find the user's organization by looking at their access records
+        const { data: userAccess } = await supabase
+          .from('user_access')
+          .select('organization_id')
+          .eq('user_id', result.id)
+          .limit(1);
+        
+        if (userAccess && userAccess.length > 0) {
+          navigate(`/admin/organizations/${userAccess[0].organization_id}`);
+        } else {
+          // If no access records found, navigate to the organizations list
+          navigate('/admin/organizations');
+        }
         break;
     }
   };

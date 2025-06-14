@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { simpleHash } from '@/utils/passwordUtils';
@@ -24,12 +23,14 @@ export function useOrganizationActions({
   const { toast } = useToast();
 
   const handleToggleActive = async (
-    type: 'organization' | 'concept' | 'store',
+    type: 'organization' | 'concept' | 'store' | 'user',
     id: string,
     currentStatus: boolean
   ) => {
     try {
-      const tableName = type === 'organization' ? 'organizations' : type === 'concept' ? 'concepts' : 'stores';
+      const tableName = type === 'organization' ? 'organizations' : 
+                       type === 'concept' ? 'concepts' : 
+                       type === 'store' ? 'stores' : 'users';
       
       await supabase
         .from(tableName)
@@ -45,6 +46,9 @@ export function useOrganizationActions({
           break;
         case 'store':
           if (selectedConcept) onRefreshStores(selectedConcept);
+          break;
+        case 'user':
+          if (selectedOrg) onRefreshUsers(selectedOrg);
           break;
       }
     } catch (err) {

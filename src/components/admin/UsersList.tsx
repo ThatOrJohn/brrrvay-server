@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { User, Edit2, Plus } from 'lucide-react';
+import { User, Edit2, Plus, Eye, EyeOff } from 'lucide-react';
 
 type UserType = {
   id: string;
@@ -9,6 +9,7 @@ type UserType = {
   role: string;
   password_hash: string | null;
   created_at: string;
+  is_active: boolean;
 };
 
 type StoreType = {
@@ -137,18 +138,35 @@ export default function UsersList({
                 <th className="pb-3 font-medium text-[#999999]">Email</th>
                 <th className="pb-3 font-medium text-[#999999]">Name</th>
                 <th className="pb-3 font-medium text-[#999999]">Role</th>
+                <th className="pb-3 font-medium text-[#999999]">Status</th>
                 <th className="pb-3 font-medium text-[#999999]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.id} className="border-b border-[#333333] hover:bg-[#2A2A2A] transition-colors">
+                <tr key={user.id} className={`border-b border-[#333333] hover:bg-[#2A2A2A] transition-colors ${
+                  !user.is_active ? 'opacity-60' : ''
+                }`}>
                   <td className="py-4 text-white">{user.email}</td>
                   <td className="py-4 text-[#999999]">{user.name || '-'}</td>
                   <td className="py-4">
                     <span className="px-2 py-1 bg-[#2A2A2A] text-[#999999] rounded text-xs font-medium">
                       {user.role}
                     </span>
+                  </td>
+                  <td className="py-4">
+                    <div className="flex items-center gap-2">
+                      {user.is_active ? (
+                        <Eye className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-red-400" />
+                      )}
+                      <span className={`text-xs font-medium ${
+                        user.is_active ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {user.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
                   </td>
                   <td className="py-4">
                     <button

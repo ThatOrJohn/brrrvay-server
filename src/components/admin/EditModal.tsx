@@ -20,7 +20,7 @@ interface EditModalProps {
   item: any;
   onEditStateChange: (state: EditState) => void;
   onSave: () => void;
-  onToggleActive?: (type: 'organization' | 'concept' | 'store', id: string, currentStatus: boolean) => void;
+  onToggleActive?: (type: 'organization' | 'concept' | 'store' | 'user', id: string, currentStatus: boolean) => void;
 }
 
 export default function EditModal({
@@ -136,7 +136,7 @@ export default function EditModal({
 
         <div className="flex justify-between gap-4 mt-6">
           <div>
-            {editState.type !== 'user' && onToggleActive && (
+            {onToggleActive && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -164,7 +164,7 @@ export default function EditModal({
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => {
-                        onToggleActive(editState.type as 'organization' | 'concept' | 'store', editState.id!, item.is_active);
+                        onToggleActive(editState.type as 'organization' | 'concept' | 'store' | 'user', editState.id!, item.is_active);
                         onEditStateChange({ type: null, id: null, data: {} });
                       }}
                       className="bg-red-600 text-white hover:bg-red-700"

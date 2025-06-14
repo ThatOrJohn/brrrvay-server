@@ -29,6 +29,7 @@ export type User = {
   role: string;
   password_hash: string | null;
   created_at: string;
+  is_active: boolean;
 };
 
 export type PaginationState = {
