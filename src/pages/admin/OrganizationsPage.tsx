@@ -101,15 +101,30 @@ export default function OrganizationsPage() {
   useEffect(() => {
     if (orgId) {
       setSelectedOrg(orgId);
+      // Clear dependent states when organization changes
+      setSelectedConcept(null);
+      setStores([]);
+      setConcepts([]);
       fetchConcepts(orgId);
       fetchUsers(orgId);
+    } else {
+      // Clear all dependent states when no organization is selected
+      setSelectedOrg(null);
+      setSelectedConcept(null);
+      setConcepts([]);
+      setStores([]);
+      setUsers([]);
     }
   }, [orgId, conceptsPagination.page]);
 
   useEffect(() => {
-    if (conceptId) {
+    if (conceptId && orgId) {
       setSelectedConcept(conceptId);
       fetchStores(conceptId);
+    } else {
+      // Clear stores when no concept is selected
+      setSelectedConcept(null);
+      setStores([]);
     }
   }, [conceptId, storesPagination.page]);
 
@@ -240,12 +255,12 @@ export default function OrganizationsPage() {
     }
   };
 
-  const fetchUsers = async (orgId: string) => {
+  const fetchUsers = async (organizationId: string) => {
     try {
       const { data: userAccess } = await supabase
         .from('user_access')
         .select('user_id')
-        .eq('organization_id', orgId);
+        .eq('organization_id', organizationId);
 
       if (!userAccess?.length) {
         setUsers([]);
@@ -268,8 +283,8 @@ export default function OrganizationsPage() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Use the current orgId from URL params or selectedOrg state
-    const currentOrgId = orgId || selectedOrg;
+    // Use orgId from URL params as the primary source
+    const currentOrgId = orgId;
     if (!currentOrgId || !newUser.selectedStores.length) return;
 
     try {
@@ -308,7 +323,7 @@ export default function OrganizationsPage() {
         selectedStores: []
       });
       
-      // Refresh users list
+      // Refresh users list using the current organization ID
       fetchUsers(currentOrgId);
     } catch (err) {
       setError('Failed to create user');
@@ -653,7 +668,7 @@ export default function OrganizationsPage() {
               </form>
             </div>
 
-            <div className="flex flex-col" style={{ height: 'calc(600px - 200px)' }}>
+            <div className="flex flex-col h-[400px]">
               <div className="flex-1 overflow-y-auto p-6 pb-2">
                 <div className="space-y-2">
                   {organizations.map(org => (
@@ -661,7 +676,7 @@ export default function OrganizationsPage() {
                       <Link
                         to={`/admin/organizations/${org.id}`}
                         className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
-                          (selectedOrg === org.id || orgId === org.id)
+                          orgId === org.id
                             ? 'bg-indigo-600 text-white shadow-lg'
                             : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
                         }`}
@@ -696,7 +711,7 @@ export default function OrganizationsPage() {
                 <h2 className="text-xl font-semibold">Concepts</h2>
               </div>
               
-              {(selectedOrg || orgId) ? (
+              {orgId ? (
                 <form onSubmit={handleAddConcept} className="space-y-3">
                   <input
                     type="text"
@@ -720,15 +735,15 @@ export default function OrganizationsPage() {
               )}
             </div>
 
-            <div className="flex flex-col" style={{ height: 'calc(600px - 200px)' }}>
+            <div className="flex flex-col h-[400px]">
               <div className="flex-1 overflow-y-auto p-6 pb-2">
                 <div className="space-y-2">
                   {concepts.map(concept => (
                     <div key={concept.id} className="flex items-center gap-2 group">
                       <Link
-                        to={`/admin/organizations/${selectedOrg || orgId}/concepts/${concept.id}`}
+                        to={`/admin/organizations/${orgId}/concepts/${concept.id}`}
                         className={`flex-1 text-left px-4 py-3 rounded-lg transition-all duration-200 ${
-                          (selectedConcept === concept.id || conceptId === concept.id)
+                          conceptId === concept.id
                             ? 'bg-indigo-600 text-white shadow-lg'
                             : 'hover:bg-[#2A2A2A] text-[#999999] hover:text-white'
                         }`}
@@ -753,8 +768,8 @@ export default function OrganizationsPage() {
                 </div>
               </div>
 
-              {(selectedOrg || orgId) && concepts.length > 0 && (
-                <div className="border-t border-[#333333] p-4 bg-[#1A1A1A]">
+              {orgId && concepts.length > 0 && (
+                <div className="border-t border-[#333333] bg-[#1A1A1A]">
                   {renderPagination(
                     conceptsPagination,
                     setConceptsPagination,
@@ -773,7 +788,7 @@ export default function OrganizationsPage() {
                 <h2 className="text-xl font-semibold">Stores</h2>
               </div>
               
-              {(selectedConcept || conceptId) ? (
+              {conceptId ? (
                 <form onSubmit={handleAddStore} className="space-y-3">
                   <input
                     type="text"
@@ -804,13 +819,13 @@ export default function OrganizationsPage() {
               )}
             </div>
 
-            <div className="flex flex-col" style={{ height: 'calc(600px - 200px)' }}>
+            <div className="flex flex-col h-[400px]">
               <div className="flex-1 overflow-y-auto p-6 pb-2">
                 <div className="space-y-2">
                   {stores.map(store => (
                     <div key={store.id} className="flex items-center gap-2 group">
                       <Link
-                        to={`/admin/organizations/${selectedOrg || orgId}/concepts/${selectedConcept || conceptId}/stores/${store.id}`}
+                        to={`/admin/organizations/${orgId}/concepts/${conceptId}/stores/${store.id}`}
                         className={`flex-1 px-4 py-3 rounded-lg transition-colors ${
                           storeId === store.id
                             ? 'bg-indigo-600 text-white shadow-lg'
@@ -845,8 +860,8 @@ export default function OrganizationsPage() {
                 </div>
               </div>
 
-              {(selectedConcept || conceptId) && stores.length > 0 && (
-                <div className="border-t border-[#333333] p-4 bg-[#1A1A1A]">
+              {conceptId && stores.length > 0 && (
+                <div className="border-t border-[#333333] bg-[#1A1A1A]">
                   {renderPagination(
                     storesPagination,
                     setStoresPagination,
@@ -858,8 +873,8 @@ export default function OrganizationsPage() {
           </div>
         </div>
 
-        {/* Users Panel - Full Width - Show when we have an organization selected OR we're viewing an org from URL */}
-        {(selectedOrg || orgId) && (
+        {/* Users Panel - Full Width - Show when we have an organization selected */}
+        {orgId && (
           <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
             <div className="p-6 border-b border-[#333333]">
               <div className="flex items-center mb-6">
