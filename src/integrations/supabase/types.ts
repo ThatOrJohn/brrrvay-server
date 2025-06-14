@@ -13,18 +13,21 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_active: boolean
           name: string
           organization_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          is_active?: boolean
           name: string
           organization_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           organization_id?: string | null
         }
@@ -208,6 +211,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_active: boolean
           is_trial_extended: boolean | null
           name: string
           trial_ends_at: string | null
@@ -215,6 +219,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          is_active?: boolean
           is_trial_extended?: boolean | null
           name: string
           trial_ends_at?: string | null
@@ -222,6 +227,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          is_active?: boolean
           is_trial_extended?: boolean | null
           name?: string
           trial_ends_at?: string | null
@@ -255,6 +261,7 @@ export type Database = {
           created_at: string | null
           external_id: string | null
           id: string
+          is_active: boolean
           name: string
         }
         Insert: {
@@ -262,6 +269,7 @@ export type Database = {
           created_at?: string | null
           external_id?: string | null
           id?: string
+          is_active?: boolean
           name: string
         }
         Update: {
@@ -269,6 +277,7 @@ export type Database = {
           created_at?: string | null
           external_id?: string | null
           id?: string
+          is_active?: boolean
           name?: string
         }
         Relationships: [

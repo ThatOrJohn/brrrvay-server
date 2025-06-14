@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,12 +8,14 @@ type SearchResult = {
   id: string;
   name: string;
   details?: string;
+  is_active?: boolean;
 };
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const navigate = useNavigate();
 
   // Debounce search to avoid too many API calls
@@ -26,7 +29,7 @@ export default function SearchPage() {
     }, 300); // Wait 300ms after last keystroke before searching
 
     return () => clearTimeout(timeoutId);
-  }, [query]);
+  }, [query, showInactive]);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -34,27 +37,45 @@ export default function SearchPage() {
     setLoading(true);
     try {
       // Search organizations
-      const { data: orgs } = await supabase
+      const orgQuery = supabase
         .from('organizations')
-        .select('id, name')
+        .select('id, name, is_active')
         .ilike('name', `%${query}%`)
         .limit(5);
+      
+      if (!showInactive) {
+        orgQuery.eq('is_active', true);
+      }
+      
+      const { data: orgs } = await orgQuery;
 
       // Search concepts
-      const { data: concepts } = await supabase
+      const conceptQuery = supabase
         .from('concepts')
-        .select('id, name, organization_id')
+        .select('id, name, organization_id, is_active')
         .ilike('name', `%${query}%`)
         .limit(5);
+      
+      if (!showInactive) {
+        conceptQuery.eq('is_active', true);
+      }
+      
+      const { data: concepts } = await conceptQuery;
 
       // Search stores
-      const { data: stores } = await supabase
+      const storeQuery = supabase
         .from('stores')
-        .select('id, name, concept_id')
+        .select('id, name, concept_id, is_active')
         .ilike('name', `%${query}%`)
         .limit(5);
+      
+      if (!showInactive) {
+        storeQuery.eq('is_active', true);
+      }
+      
+      const { data: stores } = await storeQuery;
 
-      // Search users
+      // Search users (users don't have is_active, so we always show them)
       const { data: users } = await supabase
         .from('users')
         .select('id, email, name, role')
@@ -66,18 +87,21 @@ export default function SearchPage() {
           type: 'organization' as const,
           id: org.id,
           name: org.name,
+          is_active: org.is_active,
         })) || []),
         ...(concepts?.map(concept => ({
           type: 'concept' as const,
           id: concept.id,
           name: concept.name,
           details: `Organization: ${concept.organization_id}`,
+          is_active: concept.is_active,
         })) || []),
         ...(stores?.map(store => ({
           type: 'store' as const,
           id: store.id,
           name: store.name,
           details: `Concept: ${store.concept_id}`,
+          is_active: store.is_active,
         })) || []),
         ...(users?.map(user => ({
           type: 'user' as const,
@@ -117,7 +141,7 @@ export default function SearchPage() {
       <h1 className="text-3xl font-bold mb-8">Search</h1>
       
       <div className="mb-8">
-        <div className="flex gap-4">
+        <div className="flex gap-4 mb-4">
           <input
             type="text"
             value={query}
@@ -126,6 +150,19 @@ export default function SearchPage() {
             className="flex-1 rounded-lg bg-[#2A2A2A] border-[#333333] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 text-white p-3"
           />
         </div>
+        
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="showInactive"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+            className="rounded bg-[#2A2A2A] border-[#333333] text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="showInactive" className="text-sm text-[#999999]">
+            Show inactive items
+          </label>
+        </div>
       </div>
 
       {results.length > 0 && (
@@ -133,13 +170,22 @@ export default function SearchPage() {
           {results.map((result) => (
             <div
               key={`${result.type}-${result.id}`}
-              className="bg-[#1A1A1A] border border-[#333333] rounded-lg p-4"
+              className={`bg-[#1A1A1A] border border-[#333333] rounded-lg p-4 ${
+                result.is_active === false ? 'opacity-60' : ''
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="inline-block px-2 py-1 text-xs font-medium bg-[#2A2A2A] text-[#666666] rounded mb-2">
-                    {result.type}
-                  </span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-block px-2 py-1 text-xs font-medium bg-[#2A2A2A] text-[#666666] rounded">
+                      {result.type}
+                    </span>
+                    {result.is_active === false && (
+                      <span className="inline-block px-2 py-1 text-xs font-medium bg-red-500/20 text-red-400 rounded">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
                   <h3 className="text-lg font-medium text-white">{result.name}</h3>
                   {result.details && (
                     <p className="text-sm text-[#666666] mt-1">{result.details}</p>

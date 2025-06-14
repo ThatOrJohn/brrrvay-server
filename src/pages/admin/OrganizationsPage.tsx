@@ -2,19 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import bcrypt from 'bcryptjs';
-import { Plus, Edit2, User, Building, Store, Layers } from 'lucide-react';
+import { Plus, Edit2, User, Building, Store, Layers, Eye, EyeOff } from 'lucide-react';
 
 type Organization = {
   id: string;
   name: string;
   created_at: string;
   trial_ends_at: string | null;
+  is_active: boolean;
 };
 
 type Concept = {
   id: string;
   name: string;
   organization_id: string;
+  is_active: boolean;
 };
 
 type Store = {
@@ -22,6 +24,7 @@ type Store = {
   name: string;
   concept_id: string;
   external_id: string | null;
+  is_active: boolean;
 };
 
 type User = {
@@ -128,6 +131,33 @@ export default function OrganizationsPage() {
     }
   }, [conceptId, storesPagination.page]);
 
+  const handleToggleActive = async (type: 'organization' | 'concept' | 'store', id: string, currentStatus: boolean) => {
+    try {
+      const tableName = type === 'organization' ? 'organizations' : type === 'concept' ? 'concepts' : 'stores';
+      
+      await supabase
+        .from(tableName)
+        .update({ is_active: !currentStatus })
+        .eq('id', id);
+
+      // Refresh the appropriate data
+      switch (type) {
+        case 'organization':
+          fetchOrganizations();
+          break;
+        case 'concept':
+          if (selectedOrg) fetchConcepts(selectedOrg);
+          break;
+        case 'store':
+          if (selectedConcept) fetchStores(selectedConcept);
+          break;
+      }
+    } catch (err) {
+      setError(`Failed to toggle ${type} status`);
+      console.error(err);
+    }
+  };
+
   const handleEdit = async () => {
     if (!editState.type || !editState.id) return;
 
@@ -191,6 +221,7 @@ export default function OrganizationsPage() {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
+        .eq('is_active', true)
         .order('name');
       
       if (error) throw error;
@@ -208,12 +239,14 @@ export default function OrganizationsPage() {
       const { count } = await supabase
         .from('concepts')
         .select('*', { count: 'exact', head: true })
-        .eq('organization_id', orgId);
+        .eq('organization_id', orgId)
+        .eq('is_active', true);
 
       const { data, error } = await supabase
         .from('concepts')
         .select('*')
         .eq('organization_id', orgId)
+        .eq('is_active', true)
         .order('name')
         .range(
           (conceptsPagination.page - 1) * conceptsPagination.pageSize,
@@ -234,12 +267,14 @@ export default function OrganizationsPage() {
       const { count } = await supabase
         .from('stores')
         .select('*', { count: 'exact', head: true })
-        .eq('concept_id', conceptId);
+        .eq('concept_id', conceptId)
+        .eq('is_active', true);
 
       const { data, error } = await supabase
         .from('stores')
         .select('*')
         .eq('concept_id', conceptId)
+        .eq('is_active', true)
         .order('name')
         .range(
           (storesPagination.page - 1) * storesPagination.pageSize,
@@ -687,6 +722,15 @@ export default function OrganizationsPage() {
                         </div>
                       </Link>
                       <button
+                        onClick={() => handleToggleActive('organization', org.id, org.is_active)}
+                        className={`p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${
+                          org.is_active ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'
+                        }`}
+                        title={org.is_active ? 'Mark as inactive' : 'Mark as active'}
+                      >
+                        {org.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                      <button
                         onClick={() => setEditState({
                           type: 'organization',
                           id: org.id,
@@ -753,6 +797,15 @@ export default function OrganizationsPage() {
                           {concept.name}
                         </div>
                       </Link>
+                      <button
+                        onClick={() => handleToggleActive('concept', concept.id, concept.is_active)}
+                        className={`p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${
+                          concept.is_active ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'
+                        }`}
+                        title={concept.is_active ? 'Mark as inactive' : 'Mark as active'}
+                      >
+                        {concept.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
                       <button
                         onClick={() => setEditState({
                           type: 'concept',
@@ -842,6 +895,15 @@ export default function OrganizationsPage() {
                           </div>
                         )}
                       </Link>
+                      <button
+                        onClick={() => handleToggleActive('store', store.id, store.is_active)}
+                        className={`p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${
+                          store.is_active ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'
+                        }`}
+                        title={store.is_active ? 'Mark as inactive' : 'Mark as active'}
+                      >
+                        {store.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
                       <button
                         onClick={() => setEditState({
                           type: 'store',
