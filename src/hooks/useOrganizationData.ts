@@ -74,7 +74,8 @@ export function useOrganizationData() {
 
   const handleFetchUsers = async (organizationId: string) => {
     try {
-      await fetchUsers(organizationId);
+      // Pass the conceptId to filter users by the current concept
+      await fetchUsers(organizationId, conceptId || undefined);
     } catch (err) {
       setError('Failed to fetch users');
     }
@@ -106,6 +107,8 @@ export function useOrganizationData() {
     if (conceptId && orgId) {
       setSelectedConcept(conceptId);
       handleFetchStores(conceptId);
+      // Refetch users when concept changes to filter by the new concept
+      handleFetchUsers(orgId);
     } else {
       setSelectedConcept(null);
       setStores([]);
