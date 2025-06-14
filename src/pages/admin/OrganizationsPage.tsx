@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -238,20 +239,41 @@ export default function OrganizationsPage() {
 
   const fetchUsers = async (organizationId: string) => {
     try {
+      // First get all stores for this organization
+      const { data: orgStores } = await supabase
+        .from('stores')
+        .select('id')
+        .in('concept_id', 
+          (await supabase
+            .from('concepts')
+            .select('id')
+            .eq('organization_id', organizationId)
+          ).data?.map(c => c.id) || []
+        );
+
+      if (!orgStores?.length) {
+        setUsers([]);
+        return;
+      }
+
+      // Get user access for these stores
       const { data: userAccess } = await supabase
         .from('user_access')
         .select('user_id')
-        .eq('organization_id', organizationId);
+        .in('store_id', orgStores.map(s => s.id));
 
       if (!userAccess?.length) {
         setUsers([]);
         return;
       }
 
+      // Get unique user IDs
+      const userIds = [...new Set(userAccess.map(ua => ua.user_id))];
+
       const { data: users, error } = await supabase
         .from('users')
         .select('*')
-        .in('id', userAccess.map(ua => ua.user_id))
+        .in('id', userIds)
         .order('email');
 
       if (error) throw error;
