@@ -1,7 +1,7 @@
-
-import React from 'react';
-import { User, Edit2, Plus, Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Edit2, Plus, Eye, EyeOff, Store } from 'lucide-react';
 import { UserRole } from '@/types/admin';
+import UserStoreMapping from './UserStoreMapping';
 
 type UserType = {
   id: string;
@@ -47,6 +47,8 @@ export default function UsersList({
   onAddUser,
   onEditUser
 }: UsersListProps) {
+  const [mappingUser, setMappingUser] = useState<UserType | null>(null);
+
   const handleRoleToggle = (role: UserRole) => {
     const currentRoles = newUser.roles || [];
     const newRoles = currentRoles.includes(role)
@@ -60,6 +62,12 @@ export default function UsersList({
     return roles.map(role => 
       role === 'store_user' ? 'Store User' : 'Store Admin'
     ).join(', ');
+  };
+
+  const handleSaveStoreMapping = () => {
+    setMappingUser(null);
+    // Trigger a refresh of the users list - this could be passed as a prop
+    window.location.reload(); // Simple approach for now
   };
 
   return (
@@ -210,13 +218,22 @@ export default function UsersList({
                     </div>
                   </td>
                   <td className="py-4">
-                    <button
-                      onClick={() => onEditUser(user)}
-                      className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Edit
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onEditUser(user)}
+                        className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setMappingUser(user)}
+                        className="flex items-center gap-1 text-green-400 hover:text-green-300 transition-colors"
+                      >
+                        <Store className="w-4 h-4" />
+                        Stores
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -224,6 +241,15 @@ export default function UsersList({
           </table>
         </div>
       </div>
+
+      {mappingUser && (
+        <UserStoreMapping
+          user={mappingUser}
+          stores={stores}
+          onClose={() => setMappingUser(null)}
+          onSave={handleSaveStoreMapping}
+        />
+      )}
     </div>
   );
 }

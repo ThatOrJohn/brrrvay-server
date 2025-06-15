@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AgentManagement from './AgentManagement';
-import { Settings, Monitor } from 'lucide-react';
+import StoreUserManagement from './StoreUserManagement';
+import { Settings, Monitor, Users } from 'lucide-react';
 
 interface StoreDetailsProps {
   store: {
@@ -20,7 +21,7 @@ interface StoreDetailsProps {
 
 export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'settings'; // Default to settings instead of agents
+  const defaultTab = searchParams.get('tab') || 'settings';
 
   return (
     <div className="space-y-6">
@@ -41,13 +42,20 @@ export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-[#1A1A1A] border border-[#333333]">
+        <TabsList className="grid w-full grid-cols-3 bg-[#1A1A1A] border border-[#333333]">
           <TabsTrigger 
             value="settings" 
             className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-gray-400"
           >
             <Settings className="w-4 h-4 mr-2" />
             Store Settings
+          </TabsTrigger>
+          <TabsTrigger 
+            value="users" 
+            className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-gray-400"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Store Users
           </TabsTrigger>
           <TabsTrigger 
             value="agents" 
@@ -107,6 +115,10 @@ export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-6">
+          <StoreUserManagement storeId={store.id} storeName={store.name} />
         </TabsContent>
 
         <TabsContent value="agents" className="mt-6">
