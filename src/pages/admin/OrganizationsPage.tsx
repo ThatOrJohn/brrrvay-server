@@ -146,91 +146,107 @@ export default function OrganizationsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Organization Management</h1>
-        <p className="text-[#666666]">Manage your organizations, concepts, stores, and users</p>
+    <div className="max-w-7xl mx-auto px-4 pb-8 animate-fade-in">
+      {/* Enhanced header with subtle animations */}
+      <div className="mb-8 transform transition-all duration-300 hover:scale-[1.01]">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+          Organization Management
+        </h1>
+        <p className="text-[#888888] transition-colors duration-300 hover:text-[#aaaaaa]">
+          Manage your organizations, concepts, stores, and users with ease
+        </p>
       </div>
       
-      <Breadcrumbs {...getBreadcrumbData()} />
+      <div className="transform transition-all duration-300">
+        <Breadcrumbs {...getBreadcrumbData()} />
+      </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-8 text-sm text-red-500 flex items-center">
-          <div className="w-4 h-4 bg-red-500 rounded-full mr-3 flex-shrink-0"></div>
-          {error}
+        <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/30 rounded-xl p-4 mb-8 text-sm text-red-400 flex items-center animate-scale-in backdrop-blur-sm">
+          <div className="w-4 h-4 bg-red-500 rounded-full mr-3 flex-shrink-0 animate-pulse"></div>
+          <span className="font-medium">{error}</span>
         </div>
       )}
 
       <div className="space-y-8">
+        {/* Enhanced grid with stagger animation */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <OrganizationsList
-            organizations={organizations}
-            selectedOrgId={orgId || null}
-            newOrgName={newOrgName}
-            onNewOrgNameChange={setNewOrgName}
-            onAddOrganization={onAddOrganization}
-            onEditOrganization={(org) => setEditState({
-              type: 'organization',
-              id: org.id,
-              data: { name: org.name }
-            })}
-          />
+          <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <OrganizationsList
+              organizations={organizations}
+              selectedOrgId={orgId || null}
+              newOrgName={newOrgName}
+              onNewOrgNameChange={setNewOrgName}
+              onAddOrganization={onAddOrganization}
+              onEditOrganization={(org) => setEditState({
+                type: 'organization',
+                id: org.id,
+                data: { name: org.name }
+              })}
+            />
+          </div>
 
-          <ConceptsList
-            concepts={concepts}
-            selectedOrgId={orgId || null}
-            selectedConceptId={conceptId || null}
-            newConceptName={newConceptName}
-            onNewConceptNameChange={setNewConceptName}
-            onAddConcept={onAddConcept}
-            onEditConcept={(concept) => setEditState({
-              type: 'concept',
-              id: concept.id,
-              data: { name: concept.name }
-            })}
-            pagination={conceptsPagination}
-            onPaginationChange={setConceptsPagination}
-          />
+          <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
+            <ConceptsList
+              concepts={concepts}
+              selectedOrgId={orgId || null}
+              selectedConceptId={conceptId || null}
+              newConceptName={newConceptName}
+              onNewConceptNameChange={setNewConceptName}
+              onAddConcept={onAddConcept}
+              onEditConcept={(concept) => setEditState({
+                type: 'concept',
+                id: concept.id,
+                data: { name: concept.name }
+              })}
+              pagination={conceptsPagination}
+              onPaginationChange={setConceptsPagination}
+            />
+          </div>
 
-          <StoresList
-            stores={stores}
-            selectedOrgId={orgId || null}
-            selectedConceptId={conceptId || null}
-            selectedStoreId={storeId || null}
-            newStoreName={newStoreName}
-            newStoreExternalId={newStoreExternalId}
-            onNewStoreNameChange={setNewStoreName}
-            onNewStoreExternalIdChange={setNewStoreExternalId}
-            onAddStore={onAddStore}
-            onEditStore={(store) => setEditState({
-              type: 'store',
-              id: store.id,
-              data: {
-                name: store.name,
-                external_id: store.external_id || ''
-              }
-            })}
-            pagination={storesPagination}
-            onPaginationChange={setStoresPagination}
-          />
+          <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
+            <StoresList
+              stores={stores}
+              selectedOrgId={orgId || null}
+              selectedConceptId={conceptId || null}
+              selectedStoreId={storeId || null}
+              newStoreName={newStoreName}
+              newStoreExternalId={newStoreExternalId}
+              onNewStoreNameChange={setNewStoreName}
+              onNewStoreExternalIdChange={setNewStoreExternalId}
+              onAddStore={onAddStore}
+              onEditStore={(store) => setEditState({
+                type: 'store',
+                id: store.id,
+                data: {
+                  name: store.name,
+                  external_id: store.external_id || ''
+                }
+              })}
+              pagination={storesPagination}
+              onPaginationChange={setStoresPagination}
+            />
+          </div>
         </div>
 
         {orgId && (
-          <UsersList
-            users={users}
-            stores={stores}
-            newUser={newUser}
-            onNewUserChange={handleNewUserChange}
-            onAddUser={onAddUser}
-            onEditUser={(user) => setEditState({
-              type: 'user',
-              id: user.id,
-              data: {
-                email: user.email,
-                name: user.name || ''
-              }
-            })}
-          />
+          <div className="animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <UsersList
+              users={users}
+              stores={stores}
+              newUser={newUser}
+              onNewUserChange={handleNewUserChange}
+              onAddUser={onAddUser}
+              onEditUser={(user) => setEditState({
+                type: 'user',
+                id: user.id,
+                data: {
+                  email: user.email,
+                  name: user.name || ''
+                }
+              })}
+            />
+          </div>
         )}
       </div>
 
