@@ -145,10 +145,30 @@ export default function OrganizationMainView({
         storeId
       );
     }
-    // Only run this effect on orgId change, and when pagination changes (if desired)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
+  // Auto-load stores when conceptId changes
+  useEffect(() => {
+    if (conceptId) {
+      fetchStores(
+        conceptId,
+        storesPagination,
+        setStoresPagination,
+        storeId
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conceptId]);
+
+  // Auto-load users when orgId or conceptId changes
+  useEffect(() => {
+    if (orgId) {
+      fetchUsers(orgId, conceptId || undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, conceptId]);
+  
   return (
     <OrganizationPageLayout
       organizations={organizations}
