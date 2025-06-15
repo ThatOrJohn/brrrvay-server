@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/types/admin';
+import { User, UserRole } from '@/types/admin';
 
 export function useUsersFetcher() {
   const [users, setUsers] = useState<User[]>([]);
@@ -51,7 +51,21 @@ export function useUsersFetcher() {
 
         if (error) throw error;
         console.log('Fetched users for concept:', users);
-        setUsers(users || []);
+
+        // Fetch roles for each user
+        const usersWithRoles = await Promise.all(
+          (users || []).map(async (user) => {
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id);
+            
+            const roles = roleData?.map(r => r.role as UserRole) || [];
+            return { ...user, roles };
+          })
+        );
+
+        setUsers(usersWithRoles);
       } else {
         // If no concept specified, fetch all users for the organization (existing logic)
         const { data: concepts, error: conceptsError } = await supabase
@@ -107,7 +121,21 @@ export function useUsersFetcher() {
 
         if (error) throw error;
         console.log('Fetched users:', users);
-        setUsers(users || []);
+
+        // Fetch roles for each user
+        const usersWithRoles = await Promise.all(
+          (users || []).map(async (user) => {
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id);
+            
+            const roles = roleData?.map(r => r.role as UserRole) || [];
+            return { ...user, roles };
+          })
+        );
+
+        setUsers(usersWithRoles);
       }
     } catch (err) {
       console.error('Error fetching users:', err);

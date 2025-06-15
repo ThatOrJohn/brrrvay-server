@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { useUserRoles } from '@/hooks/useUserRoles';
+import { UserRole } from '@/types/admin';
 
 type EditState = {
   type: 'organization' | 'concept' | 'store' | 'user' | null;
@@ -12,6 +14,7 @@ type EditState = {
     email?: string;
     external_id?: string;
     password?: string;
+    roles?: UserRole[];
   };
 };
 
@@ -23,6 +26,8 @@ interface EditModalProps {
   onToggleActive?: (type: 'organization' | 'concept' | 'store' | 'user', id: string, currentStatus: boolean) => void;
 }
 
+const AVAILABLE_ROLES: UserRole[] = ['store_user', 'store_admin'];
+
 export default function EditModal({
   editState,
   item,
@@ -30,6 +35,42 @@ export default function EditModal({
   onSave,
   onToggleActive
 }: EditModalProps) {
+  const { userRoles, updateUserRoles } = useUserRoles(editState.type === 'user' ? editState.id : undefined);
+  const [localRoles, setLocalRoles] = useState<UserRole[]>([]);
+
+  useEffect(() => {
+    if (editState.type === 'user' && userRoles.length > 0) {
+      setLocalRoles(userRoles);
+      onEditStateChange({
+        ...editState,
+        data: { ...editState.data, roles: userRoles }
+      });
+    }
+  }, [userRoles]);
+
+  const handleRoleToggle = (role: UserRole) => {
+    const newRoles = localRoles.includes(role)
+      ? localRoles.filter(r => r !== role)
+      : [...localRoles, role];
+    
+    setLocalRoles(newRoles);
+    onEditStateChange({
+      ...editState,
+      data: { ...editState.data, roles: newRoles }
+    });
+  };
+
+  const handleSave = async () => {
+    if (editState.type === 'user' && editState.id && localRoles.length > 0) {
+      const success = await updateUserRoles(editState.id, localRoles);
+      if (!success) {
+        console.error('Failed to update user roles');
+        return;
+      }
+    }
+    onSave();
+  };
+
   if (!editState.type || !editState.id || !item) return null;
 
   return (
@@ -83,6 +124,26 @@ export default function EditModal({
                   })}
                   className="w-full rounded-lg bg-[#2A2A2A] border-[#333333] text-white px-3 py-2"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#666666] mb-2">
+                  Roles
+                </label>
+                <div className="space-y-2">
+                  {AVAILABLE_ROLES.map(role => (
+                    <label key={role} className="flex items-center space-x-3 cursor-pointer hover:bg-[#333333] p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={localRoles.includes(role)}
+                        onChange={() => handleRoleToggle(role)}
+                        className="rounded bg-[#1A1A1A] border-[#333333] text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-white text-sm">
+                        {role === 'store_user' ? 'Store User' : 'Store Admin'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </>
           ) : editState.type === 'store' ? (
@@ -185,7 +246,7 @@ export default function EditModal({
               Cancel
             </button>
             <button
-              onClick={onSave}
+              onClick={handleSave}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
               Save Changes

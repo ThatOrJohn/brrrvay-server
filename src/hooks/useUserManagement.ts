@@ -15,6 +15,7 @@ export function useUserManagement() {
         email: newUser.email,
         name: newUser.name,
         selectedStores: newUser.selectedStores,
+        roles: newUser.roles,
         orgId,
         conceptId
       });
@@ -26,7 +27,7 @@ export function useUserManagement() {
         .insert({
           email: newUser.email,
           name: newUser.name,
-          role: 'store_user',
+          role: 'store_user', // Keep for backward compatibility
           password_hash: passwordHash
         })
         .select()
@@ -34,6 +35,21 @@ export function useUserManagement() {
 
       if (userError) throw userError;
       console.log('Created user:', userData);
+
+      // Create user roles
+      if (newUser.roles && newUser.roles.length > 0) {
+        const roleData = newUser.roles.map(role => ({
+          user_id: userData.id,
+          role
+        }));
+
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert(roleData);
+
+        if (roleError) throw roleError;
+        console.log('Created user roles:', roleData);
+      }
 
       const storeAccess = newUser.selectedStores.map(storeId => ({
         user_id: userData.id,

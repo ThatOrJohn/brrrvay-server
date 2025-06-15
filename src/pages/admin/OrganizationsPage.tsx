@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import StoreDetails from '@/components/admin/StoreDetails';
@@ -6,7 +5,7 @@ import OrganizationPageLayout from '@/components/admin/organization-page/Organiz
 import OrganizationBreadcrumbsContainer from '@/components/admin/organization-page/OrganizationBreadcrumbsContainer';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useOrganizationActions } from '@/hooks/useOrganizationActions';
-import { EditState, NewUser } from '@/types/admin';
+import { EditState, NewUser, UserRole } from '@/types/admin';
 
 export default function OrganizationsPage() {
   const { orgId, conceptId, storeId } = useParams();
@@ -61,7 +60,8 @@ export default function OrganizationsPage() {
     email: '',
     name: '',
     password: '',
-    selectedStores: []
+    selectedStores: [],
+    roles: ['store_user'] // Default role
   });
 
   // Form states
@@ -70,7 +70,7 @@ export default function OrganizationsPage() {
   const [newStoreName, setNewStoreName] = useState('');
   const [newStoreExternalId, setNewStoreExternalId] = useState('');
 
-  const handleNewUserChange = (field: string, value: string | string[]) => {
+  const handleNewUserChange = (field: string, value: string | string[] | UserRole[]) => {
     setNewUser(prev => ({ ...prev, [field]: value }));
   };
 
@@ -101,7 +101,8 @@ export default function OrganizationsPage() {
         email: '',
         name: '',
         password: '',
-        selectedStores: []
+        selectedStores: [],
+        roles: ['store_user']
       });
     }
   };

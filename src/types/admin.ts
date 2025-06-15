@@ -22,6 +22,8 @@ export type Store = {
   is_active: boolean;
 };
 
+export type UserRole = 'store_user' | 'store_admin';
+
 export type User = {
   id: string;
   email: string;
@@ -30,6 +32,7 @@ export type User = {
   password_hash: string | null;
   created_at: string;
   is_active: boolean;
+  roles?: UserRole[]; // New field for multiple roles
 };
 
 export type PaginationState = {
@@ -46,6 +49,7 @@ export type EditState = {
     email?: string;
     external_id?: string;
     password?: string;
+    roles?: UserRole[];
   };
 };
 
@@ -54,4 +58,5 @@ export type NewUser = {
   name: string;
   password: string;
   selectedStores: string[];
+  roles: UserRole[];
 };

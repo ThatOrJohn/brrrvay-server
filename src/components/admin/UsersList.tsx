@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { User, Edit2, Plus, Eye, EyeOff } from 'lucide-react';
+import { UserRole } from '@/types/admin';
 
 type UserType = {
   id: string;
@@ -10,6 +11,7 @@ type UserType = {
   password_hash: string | null;
   created_at: string;
   is_active: boolean;
+  roles?: UserRole[];
 };
 
 type StoreType = {
@@ -28,11 +30,14 @@ interface UsersListProps {
     name: string;
     password: string;
     selectedStores: string[];
+    roles: UserRole[];
   };
-  onNewUserChange: (field: string, value: string | string[]) => void;
+  onNewUserChange: (field: string, value: string | string[] | UserRole[]) => void;
   onAddUser: (e: React.FormEvent) => void;
   onEditUser: (user: UserType) => void;
 }
+
+const AVAILABLE_ROLES: UserRole[] = ['store_user', 'store_admin'];
 
 export default function UsersList({
   users,
@@ -42,6 +47,21 @@ export default function UsersList({
   onAddUser,
   onEditUser
 }: UsersListProps) {
+  const handleRoleToggle = (role: UserRole) => {
+    const currentRoles = newUser.roles || [];
+    const newRoles = currentRoles.includes(role)
+      ? currentRoles.filter(r => r !== role)
+      : [...currentRoles, role];
+    onNewUserChange('roles', newRoles);
+  };
+
+  const formatRoles = (roles: UserRole[] | undefined) => {
+    if (!roles || roles.length === 0) return 'No roles';
+    return roles.map(role => 
+      role === 'store_user' ? 'Store User' : 'Store Admin'
+    ).join(', ');
+  };
+
   return (
     <div className="bg-[#1A1A1A] border border-[#333333] rounded-xl shadow-lg">
       <div className="p-6 border-b border-[#333333]">
@@ -88,6 +108,27 @@ export default function UsersList({
                 className="w-full rounded-lg bg-[#2A2A2A] border border-[#333333] text-white px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#999999] mb-2">
+                Roles
+              </label>
+              <div className="space-y-2">
+                {AVAILABLE_ROLES.map(role => (
+                  <label key={role} className="flex items-center space-x-3 cursor-pointer hover:bg-[#333333] p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={newUser.roles?.includes(role) || false}
+                      onChange={() => handleRoleToggle(role)}
+                      className="rounded bg-[#1A1A1A] border-[#333333] text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-white text-sm">
+                      {role === 'store_user' ? 'Store User' : 'Store Admin'}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -137,7 +178,7 @@ export default function UsersList({
               <tr className="text-left border-b border-[#333333]">
                 <th className="pb-3 font-medium text-[#999999]">Email</th>
                 <th className="pb-3 font-medium text-[#999999]">Name</th>
-                <th className="pb-3 font-medium text-[#999999]">Role</th>
+                <th className="pb-3 font-medium text-[#999999]">Roles</th>
                 <th className="pb-3 font-medium text-[#999999]">Status</th>
                 <th className="pb-3 font-medium text-[#999999]">Actions</th>
               </tr>
@@ -151,7 +192,7 @@ export default function UsersList({
                   <td className="py-4 text-[#999999]">{user.name || '-'}</td>
                   <td className="py-4">
                     <span className="px-2 py-1 bg-[#2A2A2A] text-[#999999] rounded text-xs font-medium">
-                      {user.role}
+                      {formatRoles(user.roles)}
                     </span>
                   </td>
                   <td className="py-4">
