@@ -9,6 +9,106 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_registration_tokens: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          store_id: string
+          token: string
+          used_at: string | null
+          used_by_agent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          store_id: string
+          token: string
+          used_at?: string | null
+          used_by_agent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          store_id?: string
+          token?: string
+          used_at?: string | null
+          used_by_agent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_registration_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_registration_tokens_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_registration_tokens_used_by_agent_id_fkey"
+            columns: ["used_by_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agents: {
+        Row: {
+          agent_key: string
+          config: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_seen_at: string | null
+          name: string
+          status: string | null
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          agent_key: string
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          name: string
+          status?: string | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          agent_key?: string
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       concepts: {
         Row: {
           created_at: string | null
@@ -254,6 +354,58 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      store_agents: {
+        Row: {
+          agent_id: string
+          assigned_at: string | null
+          assigned_by: string | null
+          config: Json | null
+          id: string
+          is_active: boolean | null
+          store_id: string
+        }
+        Insert: {
+          agent_id: string
+          assigned_at?: string | null
+          assigned_by?: string | null
+          config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          store_id: string
+        }
+        Update: {
+          agent_id?: string
+          assigned_at?: string | null
+          assigned_by?: string | null
+          config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_agents_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_agents_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_agents_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stores: {
         Row: {

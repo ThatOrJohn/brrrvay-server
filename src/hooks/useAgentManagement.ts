@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +15,7 @@ export function useAgentManagement() {
       if (!session) throw new Error('Not authenticated');
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-agent-token`,
+        `https://wpmvjrjtyxivfzpaveju.supabase.co/functions/v1/generate-agent-token`,
         {
           method: 'POST',
           headers: {
