@@ -38,6 +38,21 @@ export default function OrganizationMainView({
     fetchUsers,
   } = useOrganizationData();
 
+  // WRAPPER FETCH functions for useOrganizationActions (correct signature)
+  const fetchConceptsWrapper = (orgIdToFetch: string) => {
+    // always use latest pagination from state
+    fetchConcepts(orgIdToFetch, conceptsPagination, setConceptsPagination, conceptId, storeId);
+  };
+
+  const fetchStoresWrapper = (conceptIdToFetch: string) => {
+    fetchStores(conceptIdToFetch, storesPagination, setStoresPagination, storeId);
+  };
+
+  const fetchUsersWrapper = (orgIdToFetch: string) => {
+    // If conceptId present, filter users by that concept
+    fetchUsers(orgIdToFetch, conceptId || undefined);
+  };
+
   const {
     handleToggleActive,
     handleEdit,
@@ -49,9 +64,9 @@ export default function OrganizationMainView({
     selectedOrg,
     selectedConcept,
     onRefreshOrganizations: fetchOrganizations,
-    onRefreshConcepts: fetchConcepts,
-    onRefreshStores: fetchStores,
-    onRefreshUsers: fetchUsers,
+    onRefreshConcepts: fetchConceptsWrapper,
+    onRefreshStores: fetchStoresWrapper,
+    onRefreshUsers: fetchUsersWrapper,
   });
 
   const {
