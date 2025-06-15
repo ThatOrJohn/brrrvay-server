@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import OrganizationPageLayout from './OrganizationPageLayout';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useOrganizationActions } from '@/hooks/useOrganizationActions';
@@ -134,9 +134,15 @@ export default function OrganizationMainView({
     }
   };
 
-  // Auto-load concepts when orgId changes
+  // Avoid infinite loops by memoizing prev orgId/conceptId
+  const prevOrgIdRef = useRef<string | null>(null);
+  const prevConceptIdRef = useRef<string | null>(null);
+  const prevConceptsPaginationRef = useRef(conceptsPagination);
+  const prevStoresPaginationRef = useRef(storesPagination);
+
+  // Only fetch concepts when orgId actually changes
   useEffect(() => {
-    if (orgId) {
+    if (orgId && prevOrgIdRef.current !== orgId) {
       fetchConcepts(
         orgId,
         conceptsPagination,
@@ -144,24 +150,44 @@ export default function OrganizationMainView({
         conceptId,
         storeId
       );
+      prevOrgIdRef.current = orgId;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
-  // Auto-load stores when conceptId changes
+  // Only fetch stores when conceptId actually changes
   useEffect(() => {
-    if (conceptId) {
+    if (conceptId && prevConceptIdRef.current !== conceptId) {
       fetchStores(
         conceptId,
         storesPagination,
         setStoresPagination,
         storeId
       );
+      prevConceptIdRef.current = conceptId;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conceptId]);
 
-  // Auto-load users when orgId or conceptId changes
+  // Fetch concepts when pagination state changes (and stable orgId)
+  useEffect(() => {
+    if (orgId && prevConceptsPaginationRef.current !== conceptsPagination) {
+      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
+      prevConceptsPaginationRef.current = conceptsPagination;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conceptsPagination]);
+
+  // Fetch stores when pagination state changes (and stable conceptId)
+  useEffect(() => {
+    if (conceptId && prevStoresPaginationRef.current !== storesPagination) {
+      fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
+      prevStoresPaginationRef.current = storesPagination;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storesPagination]);
+
+  // Only fetch users when orgId or conceptId changes, not on each render
   useEffect(() => {
     if (orgId) {
       fetchUsers(orgId, conceptId || undefined);

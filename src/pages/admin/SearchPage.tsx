@@ -180,22 +180,26 @@ export default function SearchPage() {
           navigate(`/admin/organizations/${result.organization_id}/concepts/${result.id}`);
         }
         break;
-      case 'store':
-        if (result.concept_id && result.organization_id) {
-          navigate(`/admin/organizations/${result.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=settings`);
-        } else if (result.concept_id) {
-          // Fallback: fetch org id via API if missing (from concept)
+      case 'store': {
+        let orgId = result.organization_id;
+        let conceptId = result.concept_id;
+        if (!orgId || !conceptId) {
+          // Fallback: fetch concept (and org id) if missing
           const { data: concept } = await supabase
             .from('concepts')
-            .select('organization_id')
+            .select('id, organization_id')
             .eq('id', result.concept_id)
             .single();
-          
           if (concept) {
-            navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=settings`);
+            orgId = concept.organization_id;
+            conceptId = concept.id;
           }
         }
+        if (orgId && conceptId) {
+          navigate(`/admin/organizations/${orgId}/concepts/${conceptId}/stores/${result.id}?tab=settings`);
+        }
         break;
+      }
       case 'user':
         // Find the user's organization by looking at their access records
         const { data: userAccess } = await supabase
@@ -216,19 +220,22 @@ export default function SearchPage() {
 
   const handleManageAgents = async (result: SearchResult) => {
     if (result.type === 'store') {
-      if (result.concept_id && result.organization_id) {
-        navigate(`/admin/organizations/${result.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=agents`);
-      } else if (result.concept_id) {
-        // Fallback: fetch org id via API if missing (from concept)
+      let orgId = result.organization_id;
+      let conceptId = result.concept_id;
+      if (!orgId || !conceptId) {
+        // Fallback: fetch concept/org ids
         const { data: concept } = await supabase
           .from('concepts')
-          .select('organization_id')
+          .select('id, organization_id')
           .eq('id', result.concept_id)
           .single();
-        
         if (concept) {
-          navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=agents`);
+          orgId = concept.organization_id;
+          conceptId = concept.id;
         }
+      }
+      if (orgId && conceptId) {
+        navigate(`/admin/organizations/${orgId}/concepts/${conceptId}/stores/${result.id}?tab=agents`);
       }
     }
   };

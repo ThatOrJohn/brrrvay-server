@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store, Edit2, Plus, MapPin, Settings, Monitor } from 'lucide-react';
@@ -49,10 +48,12 @@ export default function StoresList({
 }: StoresListProps) {
   const navigate = useNavigate();
 
+  // ENFORCE navigation only via icons
   const handleGoToStoreTab = (
     store: StoreType,
     tab: "settings" | "agents"
   ) => {
+    // Always use selectedOrgId/selectedConceptId as props (not from store) for navigation
     if (selectedOrgId && selectedConceptId) {
       navigate(
         `/admin/organizations/${selectedOrgId}/concepts/${selectedConceptId}/stores/${store.id}?tab=${tab}`
