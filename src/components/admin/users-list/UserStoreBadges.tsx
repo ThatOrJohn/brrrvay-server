@@ -34,9 +34,9 @@ export default function UserStoreBadges({ stores, maxVisible = 2 }: UserStoreBad
   const hasMore = remainingCount > 0;
 
   return (
-    <div className="flex items-center gap-1">
-      {/* Primary store (first one) */}
-      <TooltipProvider>
+    <TooltipProvider>
+      <div className="flex items-center gap-1">
+        {/* Primary store (first one) */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge 
@@ -55,12 +55,10 @@ export default function UserStoreBadges({ stores, maxVisible = 2 }: UserStoreBad
             <p className="text-sm text-[#999999]">{visibleStores[0].name}</p>
           </TooltipContent>
         </Tooltip>
-      </TooltipProvider>
 
-      {/* Secondary stores */}
-      {visibleStores.slice(1).map((store) => (
-        <TooltipProvider key={store.id}>
-          <Tooltip>
+        {/* Secondary stores */}
+        {visibleStores.slice(1).map((store) => (
+          <Tooltip key={store.id}>
             <TooltipTrigger asChild>
               <Badge 
                 variant="outline" 
@@ -76,12 +74,10 @@ export default function UserStoreBadges({ stores, maxVisible = 2 }: UserStoreBad
               <p className="text-sm">{store.name}</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-      ))}
+        ))}
 
-      {/* More indicator */}
-      {hasMore && (
-        <TooltipProvider>
+        {/* More indicator */}
+        {hasMore && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge 
@@ -105,8 +101,8 @@ export default function UserStoreBadges({ stores, maxVisible = 2 }: UserStoreBad
               </div>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-      )}
-    </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }
