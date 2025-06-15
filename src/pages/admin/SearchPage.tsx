@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Monitor } from 'lucide-react';
+import { Monitor, Settings } from 'lucide-react';
 
 type SearchResult = {
   type: 'organization' | 'concept' | 'store' | 'user';
@@ -262,9 +262,16 @@ export default function SearchPage() {
                   )}
                   <button
                     onClick={() => handleViewDetails(result)}
-                    className="text-indigo-400 hover:text-indigo-300 text-sm"
+                    className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-sm"
                   >
-                    View Details →
+                    {result.type === 'store' ? (
+                      <>
+                        <Settings className="w-3 h-3" />
+                        Store Settings →
+                      </>
+                    ) : (
+                      'View Details →'
+                    )}
                   </button>
                 </div>
               </div>

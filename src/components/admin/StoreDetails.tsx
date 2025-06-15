@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +19,9 @@ interface StoreDetailsProps {
 }
 
 export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'settings'; // Default to settings instead of agents
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -37,15 +40,8 @@ export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
         </div>
       </div>
 
-      <Tabs defaultValue="agents" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-[#1A1A1A] border border-[#333333]">
-          <TabsTrigger 
-            value="agents" 
-            className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-gray-400"
-          >
-            <Monitor className="w-4 h-4 mr-2" />
-            Agent Management
-          </TabsTrigger>
           <TabsTrigger 
             value="settings" 
             className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-gray-400"
@@ -53,11 +49,14 @@ export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
             <Settings className="w-4 h-4 mr-2" />
             Store Settings
           </TabsTrigger>
+          <TabsTrigger 
+            value="agents" 
+            className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-gray-400"
+          >
+            <Monitor className="w-4 h-4 mr-2" />
+            Agent Management
+          </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="agents" className="mt-6">
-          <AgentManagement storeId={store.id} storeName={store.name} />
-        </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
           <Card className="bg-[#1A1A1A] border-[#333333]">
@@ -108,6 +107,10 @@ export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="agents" className="mt-6">
+          <AgentManagement storeId={store.id} storeName={store.name} />
         </TabsContent>
       </Tabs>
     </div>
