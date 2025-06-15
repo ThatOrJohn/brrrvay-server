@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Building2, Store, UserCheck, Settings, Key } from 'lucide-react';
+import { Users, Building2, Store, UserCheck, Key } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import PasswordChangeModal from '@/components/auth/PasswordChangeModal';
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
@@ -114,26 +114,6 @@ export default function AdminDashboard() {
               onClick={() => window.location.href = '/admin/organizations'}
             >
               Manage Users
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Settings className="w-5 h-5 mr-2" />
-              Agent Management
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-400 mb-4">
-              Configure and monitor security agents
-            </p>
-            <Button 
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              onClick={() => window.location.href = '/admin/agents'}
-            >
-              Manage Agents
             </Button>
           </CardContent>
         </Card>
