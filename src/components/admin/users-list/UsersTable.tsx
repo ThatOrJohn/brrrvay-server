@@ -1,7 +1,23 @@
 
 import React from 'react';
-import { Edit2, Eye, EyeOff, Store, UserCheck } from 'lucide-react';
+import { Edit2, Eye, EyeOff, Store, UserCheck, MoreHorizontal } from 'lucide-react';
 import { UserRole } from '@/types/admin';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 type UserType = {
   id: string;
@@ -36,75 +52,102 @@ export default function UsersTable({
 
   return (
     <div className="p-6">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left border-b border-[#333333]">
-              <th className="pb-3 font-medium text-[#999999]">Email</th>
-              <th className="pb-3 font-medium text-[#999999]">Name</th>
-              <th className="pb-3 font-medium text-[#999999]">Roles</th>
-              <th className="pb-3 font-medium text-[#999999]">Status</th>
-              <th className="pb-3 font-medium text-[#999999]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id} className={`border-b border-[#333333] hover:bg-[#2A2A2A] transition-colors ${
+      <Table>
+        <TableHeader>
+          <TableRow className="border-[#333333] hover:bg-transparent">
+            <TableHead className="text-[#999999] font-medium">User Details</TableHead>
+            <TableHead className="text-[#999999] font-medium">Roles</TableHead>
+            <TableHead className="text-[#999999] font-medium">Status</TableHead>
+            <TableHead className="text-[#999999] font-medium w-[100px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users.map(user => (
+            <TableRow 
+              key={user.id} 
+              className={`border-[#333333] hover:bg-[#2A2A2A] transition-colors ${
                 !user.is_active ? 'opacity-60' : ''
-              }`}>
-                <td className="py-4 text-white">{user.email}</td>
-                <td className="py-4 text-[#999999]">{user.name || '-'}</td>
-                <td className="py-4">
-                  <span className="px-2 py-1 bg-[#2A2A2A] text-[#999999] rounded text-xs font-medium">
-                    {formatRoles(user.roles)}
+              }`}
+            >
+              <TableCell className="py-4">
+                <div className="space-y-1">
+                  <div className="text-white font-medium">{user.email}</div>
+                  {user.name && (
+                    <div className="text-[#999999] text-sm">{user.name}</div>
+                  )}
+                </div>
+              </TableCell>
+              
+              <TableCell className="py-4">
+                <Badge 
+                  variant="secondary" 
+                  className="bg-[#2A2A2A] text-[#999999] border-[#333333]"
+                >
+                  {formatRoles(user.roles)}
+                </Badge>
+              </TableCell>
+              
+              <TableCell className="py-4">
+                <div className="flex items-center gap-2">
+                  {user.is_active ? (
+                    <Eye className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-red-400" />
+                  )}
+                  <span className={`text-sm font-medium ${
+                    user.is_active ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {user.is_active ? 'Active' : 'Inactive'}
                   </span>
-                </td>
-                <td className="py-4">
-                  <div className="flex items-center gap-2">
-                    {user.is_active ? (
-                      <Eye className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <EyeOff className="w-4 h-4 text-red-400" />
-                    )}
-                    <span className={`text-xs font-medium ${
-                      user.is_active ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                </td>
-                <td className="py-4">
-                  <div className="flex items-center gap-2">
-                    <button
+                </div>
+              </TableCell>
+              
+              <TableCell className="py-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 text-[#999999] hover:text-white hover:bg-[#333333]"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    align="end" 
+                    className="bg-[#1A1A1A] border-[#333333] z-50"
+                  >
+                    <DropdownMenuItem 
                       onClick={() => onEditUser(user)}
-                      className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors"
+                      className="text-indigo-400 focus:text-indigo-300 focus:bg-[#2A2A2A] cursor-pointer"
                     >
-                      <Edit2 className="w-4 h-4" />
-                      Edit
-                    </button>
-                    <button
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit User
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
                       onClick={() => onManageStores(user)}
-                      className="flex items-center gap-1 text-green-400 hover:text-green-300 transition-colors"
+                      className="text-green-400 focus:text-green-300 focus:bg-[#2A2A2A] cursor-pointer"
                     >
-                      <Store className="w-4 h-4" />
-                      Stores
-                    </button>
+                      <Store className="w-4 h-4 mr-2" />
+                      Manage Stores
+                    </DropdownMenuItem>
+                    
                     {onImpersonateUser && user.is_active && (
-                      <button
+                      <DropdownMenuItem 
                         onClick={() => onImpersonateUser(user)}
-                        className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors"
+                        className="text-orange-400 focus:text-orange-300 focus:bg-[#2A2A2A] cursor-pointer"
                       >
-                        <UserCheck className="w-4 h-4" />
+                        <UserCheck className="w-4 h-4 mr-2" />
                         Impersonate
-                      </button>
+                      </DropdownMenuItem>
                     )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
