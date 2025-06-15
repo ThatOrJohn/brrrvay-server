@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Monitor } from 'lucide-react';
 
 type SearchResult = {
   type: 'organization' | 'concept' | 'store' | 'user';
@@ -172,9 +172,32 @@ export default function SearchPage() {
     }
   };
 
+  const handleManageAgents = async (result: SearchResult) => {
+    if (result.type === 'store' && result.concept_id) {
+      const { data: concept } = await supabase
+        .from('concepts')
+        .select('organization_id')
+        .eq('id', result.concept_id)
+        .single();
+      
+      if (concept) {
+        navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}`);
+      }
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Search</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">Search</h1>
+        <button
+          onClick={() => navigate('/admin/agents')}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+        >
+          <Monitor className="w-4 h-4" />
+          Agent Management
+        </button>
+      </div>
       
       <div className="mb-8">
         <div className="flex gap-4 mb-4">
@@ -227,12 +250,23 @@ export default function SearchPage() {
                     <p className="text-sm text-[#666666] mt-1">{result.details}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleViewDetails(result)}
-                  className="text-indigo-400 hover:text-indigo-300 text-sm"
-                >
-                  View Details →
-                </button>
+                <div className="flex items-center gap-2">
+                  {result.type === 'store' && (
+                    <button
+                      onClick={() => handleManageAgents(result)}
+                      className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-sm px-3 py-1 rounded border border-indigo-500/30 hover:bg-indigo-500/10 transition-colors"
+                    >
+                      <Monitor className="w-3 h-3" />
+                      Agents
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleViewDetails(result)}
+                    className="text-indigo-400 hover:text-indigo-300 text-sm"
+                  >
+                    View Details →
+                  </button>
+                </div>
               </div>
             </div>
           ))}

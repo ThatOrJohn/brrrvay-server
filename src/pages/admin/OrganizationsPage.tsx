@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import OrganizationsList from '@/components/admin/OrganizationsList';
 import ConceptsList from '@/components/admin/ConceptsList';
 import StoresList from '@/components/admin/StoresList';
+import StoreDetails from '@/components/admin/StoreDetails';
 import UsersList from '@/components/admin/UsersList';
 import EditModal from '@/components/admin/EditModal';
 import Breadcrumbs from '@/components/admin/Breadcrumbs';
@@ -144,6 +144,25 @@ export default function OrganizationsPage() {
       selectedStore: selectedStoreData ? { id: selectedStoreData.id, name: selectedStoreData.name } : null,
     };
   };
+
+  // Get selected store data
+  const selectedStore = storeId ? stores.find(s => s.id === storeId) : null;
+
+  // If a store is selected, show the store details page
+  if (storeId && selectedStore) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 pb-8">
+        <div className="mb-8">
+          <Breadcrumbs {...getBreadcrumbData()} />
+        </div>
+        
+        <StoreDetails 
+          store={selectedStore} 
+          storeName={selectedStore.name}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-8 animate-fade-in">
