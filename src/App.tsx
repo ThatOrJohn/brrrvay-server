@@ -1,6 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 import AdminLoginPage from './pages/admin/LoginPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import SearchPage from './pages/admin/SearchPage';
@@ -18,6 +19,9 @@ function App() {
         <Route path="/" element={<PublicLayout />}>
           <Route index element={<LoginPage />} />
         </Route>
+
+        {/* External user dashboard */}
+        <Route path="/dashboard" element={<DashboardPage />} />
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminLoginPage />} />
