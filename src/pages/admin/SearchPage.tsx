@@ -181,7 +181,7 @@ export default function SearchPage() {
         .single();
       
       if (concept) {
-        navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}`);
+        navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=agents`);
       }
     }
   };
@@ -262,7 +262,7 @@ export default function SearchPage() {
                   )}
                   <button
                     onClick={() => handleViewDetails(result)}
-                    className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-sm"
+                    className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-sm px-3 py-1 rounded border border-indigo-500/30 hover:bg-indigo-500/10 transition-colors"
                   >
                     {result.type === 'store' ? (
                       <>
