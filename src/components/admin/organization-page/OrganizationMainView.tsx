@@ -39,7 +39,6 @@ export default function OrganizationMainView({
 
   // WRAPPER FETCH functions for useOrganizationActions (correct signature)
   const fetchConceptsWrapper = (orgIdToFetch: string) => {
-    // always use latest pagination from state
     fetchConcepts(orgIdToFetch, conceptsPagination, setConceptsPagination, conceptId, storeId);
   };
 
@@ -48,7 +47,6 @@ export default function OrganizationMainView({
   };
 
   const fetchUsersWrapper = (orgIdToFetch: string) => {
-    // If conceptId present, filter users by that concept
     fetchUsers(orgIdToFetch, conceptId || undefined);
   };
 
@@ -134,10 +132,9 @@ export default function OrganizationMainView({
     }
   };
 
-  // Avoid infinite loops by memoizing prev orgId/conceptId
+  // Use refs to track previous values and prevent infinite loops
   const prevOrgIdRef = useRef<string | null>(null);
   const prevConceptIdRef = useRef<string | null>(null);
-  // Use numbers for pagination, not objects, to compare
   const prevConceptsPageRef = useRef<number>(0);
   const prevConceptsPageSizeRef = useRef<number>(0);
   const prevStoresPageRef = useRef<number>(0);
@@ -145,38 +142,19 @@ export default function OrganizationMainView({
 
   // Only fetch concepts when orgId actually changes
   useEffect(() => {
-    if (
-      orgId &&
-      prevOrgIdRef.current !== orgId
-    ) {
-      fetchConcepts(
-        orgId,
-        conceptsPagination,
-        setConceptsPagination,
-        conceptId,
-        storeId
-      );
+    if (orgId && prevOrgIdRef.current !== orgId) {
+      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
       prevOrgIdRef.current = orgId;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId]);
+  }, [orgId]); // Only depend on orgId
 
   // Only fetch stores when conceptId actually changes
   useEffect(() => {
-    if (
-      conceptId &&
-      prevConceptIdRef.current !== conceptId
-    ) {
-      fetchStores(
-        conceptId,
-        storesPagination,
-        setStoresPagination,
-        storeId
-      );
+    if (conceptId && prevConceptIdRef.current !== conceptId) {
+      fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
       prevConceptIdRef.current = conceptId;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conceptId]);
+  }, [conceptId]); // Only depend on conceptId
 
   // Fetch concepts when pagination changes
   useEffect(() => {
@@ -191,8 +169,7 @@ export default function OrganizationMainView({
       prevConceptsPageRef.current = conceptsPagination.page;
       prevConceptsPageSizeRef.current = conceptsPagination.pageSize;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conceptsPagination.page, conceptsPagination.pageSize]);
+  }, [conceptsPagination.page, conceptsPagination.pageSize, orgId]);
 
   // Fetch stores when pagination changes
   useEffect(() => {
@@ -207,16 +184,14 @@ export default function OrganizationMainView({
       prevStoresPageRef.current = storesPagination.page;
       prevStoresPageSizeRef.current = storesPagination.pageSize;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storesPagination.page, storesPagination.pageSize]);
+  }, [storesPagination.page, storesPagination.pageSize, conceptId]);
 
-  // Only fetch users when orgId or conceptId changes, not on each render
+  // Only fetch users when orgId or conceptId changes
   useEffect(() => {
     if (orgId) {
       fetchUsers(orgId, conceptId || undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId, conceptId]);
+  }, [orgId, conceptId]); // Only depend on these IDs
   
   return (
     <OrganizationPageLayout
