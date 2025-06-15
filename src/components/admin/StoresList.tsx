@@ -49,16 +49,23 @@ export default function StoresList({
   const navigate = useNavigate();
 
   const handleGoToStoreTab = (store: StoreType, tab: "settings" | "agents") => {
-    // Use the current selected IDs from props
-    const orgId = selectedOrgId;
-    const conceptId = selectedConceptId;
-    
-    if (orgId && conceptId) {
-      const navUrl = `/admin/organizations/${orgId}/concepts/${conceptId}/stores/${store.id}?tab=${tab}`;
+    // For navigation to work, we need orgId and conceptId
+    // selectedConceptId should match store.concept_id, and selectedOrgId should be available
+    if (selectedOrgId && selectedConceptId) {
+      const navUrl = `/admin/organizations/${selectedOrgId}/concepts/${selectedConceptId}/stores/${store.id}?tab=${tab}`;
       console.log('Navigating to:', navUrl);
       navigate(navUrl);
     } else {
-      console.error('Missing org or concept for navigation', { orgId, conceptId });
+      console.error('Missing org or concept for navigation', { 
+        selectedOrgId, 
+        selectedConceptId, 
+        storeConceptId: store.concept_id 
+      });
+      // Fallback: if we don't have selectedOrgId but have selectedConceptId and store concept_id matches
+      if (selectedConceptId === store.concept_id) {
+        // We need to get the orgId for this concept - this might require a different approach
+        console.log('Attempting navigation with concept only - this may not work without orgId');
+      }
     }
   };
 

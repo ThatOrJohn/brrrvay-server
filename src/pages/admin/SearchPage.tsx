@@ -181,23 +181,11 @@ export default function SearchPage() {
         }
         break;
       case 'store': {
-        // Always try to extract ids from the result, but fallback to fetch if missing
-        let orgId = result.organization_id;
-        let conceptId = result.concept_id;
-        if (!orgId || !conceptId) {
-          // Fallback: fetch concept (and org id) if missing
-          const { data: concept } = await supabase
-            .from('concepts')
-            .select('id, organization_id')
-            .eq('id', result.concept_id)
-            .single();
-          if (concept) {
-            orgId = concept.organization_id;
-            conceptId = concept.id;
-          }
-        }
-        if (orgId && conceptId) {
-          navigate(`/admin/organizations/${orgId}/concepts/${conceptId}/stores/${result.id}?tab=settings`);
+        // Ensure we have both orgId and conceptId for navigation
+        if (result.organization_id && result.concept_id) {
+          navigate(`/admin/organizations/${result.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=settings`);
+        } else {
+          console.error('Missing organization_id or concept_id for store navigation', result);
         }
         break;
       }
@@ -221,22 +209,11 @@ export default function SearchPage() {
 
   const handleManageAgents = async (result: SearchResult) => {
     if (result.type === 'store') {
-      let orgId = result.organization_id;
-      let conceptId = result.concept_id;
-      if (!orgId || !conceptId) {
-        // Fallback: fetch concept/org ids
-        const { data: concept } = await supabase
-          .from('concepts')
-          .select('id, organization_id')
-          .eq('id', result.concept_id)
-          .single();
-        if (concept) {
-          orgId = concept.organization_id;
-          conceptId = concept.id;
-        }
-      }
-      if (orgId && conceptId) {
-        navigate(`/admin/organizations/${orgId}/concepts/${conceptId}/stores/${result.id}?tab=agents`);
+      // Ensure we have both orgId and conceptId for navigation
+      if (result.organization_id && result.concept_id) {
+        navigate(`/admin/organizations/${result.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=agents`);
+      } else {
+        console.error('Missing organization_id or concept_id for agent navigation', result);
       }
     }
   };
