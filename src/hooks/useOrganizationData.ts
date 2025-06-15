@@ -15,25 +15,25 @@ export function useOrganizationData() {
     setConceptsPagination,
     setStoresPagination,
   } = usePaginationState();
-  
+
   const {
     organizations,
     setOrganizations,
     fetchOrganizations,
   } = useOrganizationsFetcher();
-  
+
   const {
     concepts,
     setConcepts,
     fetchConcepts,
   } = useConceptsFetcher();
-  
+
   const {
     stores,
     setStores,
     fetchStores,
   } = useStoresFetcher();
-  
+
   const {
     users,
     setUsers,
@@ -45,55 +45,29 @@ export function useOrganizationData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Wrapper functions to handle error state
-  const handleFetchOrganizations = async () => {
-    try {
-      await fetchOrganizations();
-    } catch (err) {
-      setError('Failed to fetch organizations');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFetchConcepts = async (orgId: string) => {
-    try {
-      await fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
-    } catch (err) {
-      setError('Failed to fetch concepts');
-    }
-  };
-
-  const handleFetchStores = async (conceptId: string) => {
-    try {
-      await fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
-    } catch (err) {
-      setError('Failed to fetch stores');
-    }
-  };
-
-  const handleFetchUsers = async (organizationId: string) => {
-    try {
-      // Pass the conceptId to filter users by the current concept
-      await fetchUsers(organizationId, conceptId || undefined);
-    } catch (err) {
-      setError('Failed to fetch users');
-    }
-  };
-
-  // Effects
+  // Only auto-load organizations list on mount
   useEffect(() => {
+    const handleFetchOrganizations = async () => {
+      try {
+        await fetchOrganizations();
+      } catch (err) {
+        setError('Failed to fetch organizations');
+      } finally {
+        setLoading(false);
+      }
+    };
     handleFetchOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handle organization selection: clear concepts/stores/users so they are not stale; do not auto-fetch
   useEffect(() => {
     if (orgId) {
       setSelectedOrg(orgId);
       setSelectedConcept(null);
-      setStores([]);
       setConcepts([]);
-      handleFetchConcepts(orgId);
-      handleFetchUsers(orgId);
+      setStores([]);
+      setUsers([]);
     } else {
       setSelectedOrg(null);
       setSelectedConcept(null);
@@ -101,19 +75,26 @@ export function useOrganizationData() {
       setStores([]);
       setUsers([]);
     }
-  }, [orgId, conceptsPagination.page]);
+    // Intentionally do NOT fetchConcepts or fetchUsers here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
+  // Handle concept selection: clear stores/users so they are not stale; do not auto-fetch
   useEffect(() => {
     if (conceptId && orgId) {
       setSelectedConcept(conceptId);
-      handleFetchStores(conceptId);
-      // Refetch users when concept changes to filter by the new concept
-      handleFetchUsers(orgId);
+      setStores([]);
+      setUsers([]);
     } else {
       setSelectedConcept(null);
       setStores([]);
+      setUsers([]);
     }
-  }, [conceptId, storesPagination.page]);
+    // Intentionally do NOT fetchStores here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conceptId, orgId]);
+
+  // No fetching users/concepts/stores on pagination/state change; leave as manual trigger from consumers
 
   return {
     // State
@@ -136,11 +117,11 @@ export function useOrganizationData() {
     setError,
     setConceptsPagination,
     setStoresPagination,
-    
-    // Functions
-    fetchOrganizations: handleFetchOrganizations,
-    fetchConcepts: handleFetchConcepts,
-    fetchStores: handleFetchStores,
-    fetchUsers: handleFetchUsers,
+
+    // Fetch functions must now be called manually as needed
+    fetchOrganizations,
+    fetchConcepts,
+    fetchStores,
+    fetchUsers,
   };
 }
