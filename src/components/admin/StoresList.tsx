@@ -48,16 +48,22 @@ export default function StoresList({
 }: StoresListProps) {
   const navigate = useNavigate();
 
-  // ENFORCE navigation only via icons
+  // Navigation now checks for missing selectedOrgId/selectedConceptId and gets from store if needed
   const handleGoToStoreTab = (
     store: StoreType,
     tab: "settings" | "agents"
   ) => {
-    // Always use selectedOrgId/selectedConceptId as props (not from store) for navigation
-    if (selectedOrgId && selectedConceptId) {
-      navigate(
-        `/admin/organizations/${selectedOrgId}/concepts/${selectedConceptId}/stores/${store.id}?tab=${tab}`
-      );
+    // Use selected values if present, else fallback to store/concept_id
+    const orgId = selectedOrgId || (store as any).organization_id;
+    const conceptId = selectedConceptId || store.concept_id;
+    if (orgId && conceptId) {
+      const navUrl = `/admin/organizations/${orgId}/concepts/${conceptId}/stores/${store.id}?tab=${tab}`;
+      // You might want a debug log for nav
+      // console.log('Navigating to:', navUrl);
+      navigate(navUrl);
+    } else {
+      // Could show error/toast if org/concept missing, but most cases should be covered
+      // alert('Missing org or concept for navigation');
     }
   };
 

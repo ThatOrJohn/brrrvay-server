@@ -181,6 +181,7 @@ export default function SearchPage() {
         }
         break;
       case 'store': {
+        // Always try to extract ids from the result, but fallback to fetch if missing
         let orgId = result.organization_id;
         let conceptId = result.concept_id;
         if (!orgId || !conceptId) {
