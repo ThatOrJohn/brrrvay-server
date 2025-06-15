@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Monitor, Settings } from 'lucide-react';
+import { Monitor, Settings, Eye, EyeOff } from 'lucide-react';
 
 type SearchResult = {
   type: 'organization' | 'concept' | 'store' | 'user';
@@ -10,7 +10,10 @@ type SearchResult = {
   details?: string;
   is_active?: boolean;
   organization_id?: string;
+  organization_name?: string;
   concept_id?: string;
+  concept_name?: string;
+  agent_count?: number;
 };
 
 export default function SearchPage() {
@@ -18,6 +21,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [showGuids, setShowGuids] = useState(false);
   const navigate = useNavigate();
 
   // Debounce search to avoid too many API calls
@@ -31,7 +35,7 @@ export default function SearchPage() {
     }, 300); // Wait 300ms after last keystroke before searching
 
     return () => clearTimeout(timeoutId);
-  }, [query, showInactive]);
+  }, [query, showInactive, showGuids]);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -51,10 +55,16 @@ export default function SearchPage() {
       
       const { data: orgs } = await orgQuery;
 
-      // Search concepts
+      // Search concepts with organization names
       const conceptQuery = supabase
         .from('concepts')
-        .select('id, name, organization_id, is_active')
+        .select(`
+          id, 
+          name, 
+          organization_id, 
+          is_active,
+          organizations!inner(name)
+        `)
         .ilike('name', `%${query}%`)
         .limit(5);
       
@@ -64,10 +74,20 @@ export default function SearchPage() {
       
       const { data: concepts } = await conceptQuery;
 
-      // Search stores
+      // Search stores with concept and organization names, plus agent count
       const storeQuery = supabase
         .from('stores')
-        .select('id, name, concept_id, is_active')
+        .select(`
+          id, 
+          name, 
+          concept_id, 
+          is_active,
+          concepts!inner(
+            name,
+            organization_id,
+            organizations!inner(name)
+          )
+        `)
         .ilike('name', `%${query}%`)
         .limit(5);
       
@@ -76,6 +96,23 @@ export default function SearchPage() {
       }
       
       const { data: stores } = await storeQuery;
+
+      // Get agent counts for stores
+      const storeIds = stores?.map(store => store.id) || [];
+      let agentCounts: Record<string, number> = {};
+      
+      if (storeIds.length > 0) {
+        const { data: agentData } = await supabase
+          .from('store_agents')
+          .select('store_id')
+          .in('store_id', storeIds)
+          .eq('is_active', true);
+        
+        agentCounts = agentData?.reduce((acc, item) => {
+          acc[item.store_id] = (acc[item.store_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+      }
 
       // Search users
       const userQuery = supabase
@@ -101,17 +138,20 @@ export default function SearchPage() {
           type: 'concept' as const,
           id: concept.id,
           name: concept.name,
-          details: `Organization: ${concept.organization_id}`,
-          is_active: concept.is_active,
           organization_id: concept.organization_id,
+          organization_name: concept.organizations?.name,
+          is_active: concept.is_active,
         })) || []),
         ...(stores?.map(store => ({
           type: 'store' as const,
           id: store.id,
           name: store.name,
-          details: `Concept: ${store.concept_id}`,
-          is_active: store.is_active,
           concept_id: store.concept_id,
+          concept_name: store.concepts?.name,
+          organization_id: store.concepts?.organization_id,
+          organization_name: store.concepts?.organizations?.name,
+          is_active: store.is_active,
+          agent_count: agentCounts[store.id] || 0,
         })) || []),
         ...(users?.map(user => ({
           type: 'user' as const,
@@ -186,6 +226,42 @@ export default function SearchPage() {
     }
   };
 
+  const renderConceptCard = (result: SearchResult) => (
+    <div className="space-y-2">
+      <h3 className="text-lg font-medium text-white">{result.name}</h3>
+      <div className="text-sm text-[#666666]">
+        <div>Organization: {result.organization_name}</div>
+        {showGuids && (
+          <>
+            <div className="font-mono text-xs mt-1">Concept ID: {result.id}</div>
+            <div className="font-mono text-xs">Organization ID: {result.organization_id}</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderStoreCard = (result: SearchResult) => (
+    <div className="space-y-2">
+      <h3 className="text-lg font-medium text-white">{result.name}</h3>
+      <div className="text-sm text-[#666666] space-y-1">
+        <div>Organization: {result.organization_name}</div>
+        <div>Concept: {result.concept_name}</div>
+        <div className="flex items-center gap-2">
+          <Monitor className="w-3 h-3" />
+          <span>{result.agent_count || 0} registered agent{result.agent_count !== 1 ? 's' : ''}</span>
+        </div>
+        {showGuids && (
+          <>
+            <div className="font-mono text-xs mt-1">Store ID: {result.id}</div>
+            <div className="font-mono text-xs">Concept ID: {result.concept_id}</div>
+            <div className="font-mono text-xs">Organization ID: {result.organization_id}</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-8">
@@ -210,17 +286,33 @@ export default function SearchPage() {
           />
         </div>
         
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="showInactive"
-            checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
-            className="rounded bg-[#2A2A2A] border-[#333333] text-indigo-600 focus:ring-indigo-500"
-          />
-          <label htmlFor="showInactive" className="text-sm text-[#999999]">
-            Show inactive items
-          </label>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showInactive"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="rounded bg-[#2A2A2A] border-[#333333] text-indigo-600 focus:ring-indigo-500"
+            />
+            <label htmlFor="showInactive" className="text-sm text-[#999999]">
+              Show inactive items
+            </label>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showGuids"
+              checked={showGuids}
+              onChange={(e) => setShowGuids(e.target.checked)}
+              className="rounded bg-[#2A2A2A] border-[#333333] text-indigo-600 focus:ring-indigo-500"
+            />
+            <label htmlFor="showGuids" className="text-sm text-[#999999] flex items-center gap-1">
+              {showGuids ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              Show GUIDs
+            </label>
+          </div>
         </div>
       </div>
 
@@ -234,7 +326,7 @@ export default function SearchPage() {
               }`}
             >
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="inline-block px-2 py-1 text-xs font-medium bg-[#2A2A2A] text-[#666666] rounded">
                       {result.type}
@@ -245,9 +337,19 @@ export default function SearchPage() {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-lg font-medium text-white">{result.name}</h3>
-                  {result.details && (
-                    <p className="text-sm text-[#666666] mt-1">{result.details}</p>
+                  
+                  {result.type === 'concept' && renderConceptCard(result)}
+                  {result.type === 'store' && renderStoreCard(result)}
+                  {(result.type === 'organization' || result.type === 'user') && (
+                    <div>
+                      <h3 className="text-lg font-medium text-white">{result.name}</h3>
+                      {result.details && (
+                        <p className="text-sm text-[#666666] mt-1">{result.details}</p>
+                      )}
+                      {showGuids && result.type === 'organization' && (
+                        <div className="text-xs font-mono text-[#666666] mt-1">ID: {result.id}</div>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
