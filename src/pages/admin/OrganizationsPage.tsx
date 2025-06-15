@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import OrganizationStoreView from '@/components/admin/organization-page/OrganizationStoreView';
@@ -16,7 +15,37 @@ export default function OrganizationsPage() {
     concepts,
     selectedConcept,
     stores,
+    fetchConcepts,
+    fetchStores,
+    conceptsPagination,
+    storesPagination,
+    setConceptsPagination,
+    setStoresPagination,
   } = useOrganizationData();
+
+  // When we have a storeId but no store data, we need to fetch the data
+  useEffect(() => {
+    const handleDirectStoreNavigation = async () => {
+      if (storeId && conceptId && orgId && stores.length === 0) {
+        console.log('Direct store navigation detected, fetching data for storeId:', storeId);
+        try {
+          // First fetch concepts if we don't have them
+          if (concepts.length === 0) {
+            console.log('Fetching concepts for orgId:', orgId);
+            await fetchConcepts(orgId, conceptsPagination, setConceptsPagination);
+          }
+          
+          // Then fetch stores for the concept
+          console.log('Fetching stores for conceptId:', conceptId);
+          await fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
+        } catch (error) {
+          console.error('Error fetching data for direct store navigation:', error);
+        }
+      }
+    };
+
+    handleDirectStoreNavigation();
+  }, [storeId, conceptId, orgId, stores.length, concepts.length, fetchConcepts, fetchStores, conceptsPagination, storesPagination, setConceptsPagination, setStoresPagination]);
 
   // Get selected store data
   const selectedStore = storeId ? stores.find(s => s.id === storeId) : null;
@@ -39,21 +68,11 @@ export default function OrganizationsPage() {
   }
 
   // If we have a storeId but no selectedStore yet (still loading), show loading state
-  if (storeId && !selectedStore && stores.length === 0) {
+  if (storeId && !selectedStore) {
     console.log('Loading store data for storeId:', storeId);
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-white">Loading store...</div>
-      </div>
-    );
-  }
-
-  // If we have a storeId but the store wasn't found in the loaded stores
-  if (storeId && !selectedStore && stores.length > 0) {
-    console.log('Store not found:', storeId, 'Available stores:', stores.map(s => s.id));
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-400">Store not found</div>
       </div>
     );
   }
