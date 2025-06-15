@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import OrganizationPageLayout from './OrganizationPageLayout';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useOrganizationActions } from '@/hooks/useOrganizationActions';
@@ -134,6 +133,21 @@ export default function OrganizationMainView({
         return null;
     }
   };
+
+  // Auto-load concepts when orgId changes
+  useEffect(() => {
+    if (orgId) {
+      fetchConcepts(
+        orgId,
+        conceptsPagination,
+        setConceptsPagination,
+        conceptId,
+        storeId
+      );
+    }
+    // Only run this effect on orgId change, and when pagination changes (if desired)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   return (
     <OrganizationPageLayout
