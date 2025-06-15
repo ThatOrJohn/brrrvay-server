@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Search, User } from 'lucide-react';
+import { Search, User, X } from 'lucide-react';
 
 interface ImpersonationModalProps {
   isOpen: boolean;
@@ -153,15 +152,30 @@ export default function ImpersonationModal({
     setSearchResults([]);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Impersonate External User</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 relative">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Impersonate External User
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <Label htmlFor="userSearch">Search User by Email</Label>
+            <Label htmlFor="userSearch" className="text-sm font-medium text-gray-700">
+              Search User by Email
+            </Label>
             <div className="relative mt-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
@@ -170,14 +184,14 @@ export default function ImpersonationModal({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Type to search for users..."
-                className="pl-10"
+                className="pl-10 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
           </div>
 
           {/* Search Results */}
           {searchTerm.length >= 2 && (
-            <div className="max-h-40 overflow-y-auto border rounded-lg">
+            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white">
               {searching ? (
                 <div className="p-3 text-center text-gray-500">Searching...</div>
               ) : searchResults.length > 0 ? (
@@ -187,13 +201,13 @@ export default function ImpersonationModal({
                       key={user.id}
                       type="button"
                       onClick={() => setSelectedUser(user)}
-                      className={`w-full p-2 text-left rounded flex items-center gap-3 hover:bg-gray-100 ${
-                        selectedUser?.id === user.id ? 'bg-blue-50 border border-blue-200' : ''
+                      className={`w-full p-2 text-left rounded flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                        selectedUser?.id === user.id ? 'bg-indigo-50 border border-indigo-200' : ''
                       }`}
                     >
                       <User className="w-4 h-4 text-gray-400" />
                       <div>
-                        <div className="font-medium">{user.email}</div>
+                        <div className="font-medium text-gray-900">{user.email}</div>
                         {user.name && (
                           <div className="text-sm text-gray-500">{user.name}</div>
                         )}
@@ -209,13 +223,13 @@ export default function ImpersonationModal({
 
           {/* Selected User */}
           {selectedUser && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-blue-900">Selected User:</div>
-                  <div className="text-blue-700">{selectedUser.email}</div>
+                  <div className="font-medium text-indigo-900">Selected User:</div>
+                  <div className="text-indigo-700">{selectedUser.email}</div>
                   {selectedUser.name && (
-                    <div className="text-sm text-blue-600">{selectedUser.name}</div>
+                    <div className="text-sm text-indigo-600">{selectedUser.name}</div>
                   )}
                 </div>
                 <Button
@@ -223,6 +237,7 @@ export default function ImpersonationModal({
                   variant="outline"
                   size="sm"
                   onClick={handleReset}
+                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-100"
                 >
                   Clear
                 </Button>
@@ -230,16 +245,26 @@ export default function ImpersonationModal({
             </div>
           )}
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+          {/* Footer */}
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !selectedUser}>
+            <Button 
+              type="submit" 
+              disabled={loading || !selectedUser}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+            >
               {loading ? 'Starting...' : 'Start Impersonation'}
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
