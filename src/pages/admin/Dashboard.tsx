@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Building2, Store, UserCheck, Key } from 'lucide-react';
+import { Users, Building2, Store, UserCheck, Key, Clock } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import PasswordChangeModal from '@/components/auth/PasswordChangeModal';
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
         <StatCard
           title="Active Trials"
           value={loading ? 'Loading...' : stats.activeTrials}
-          icon={Settings}
+          icon={Clock}
           description="Current active trials"
           color="orange"
         />
