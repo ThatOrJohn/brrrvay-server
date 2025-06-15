@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,6 +23,8 @@ export function useUserStores(userIds: string[]) {
     const fetchUserStores = async () => {
       setLoading(true);
       try {
+        console.log('Fetching stores for users:', userIds);
+        
         // Get user access records with store information
         const { data: userAccess, error } = await supabase
           .from('user_access')
@@ -37,7 +38,12 @@ export function useUserStores(userIds: string[]) {
           `)
           .in('user_id', userIds);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error fetching user stores:', error);
+          throw error;
+        }
+
+        console.log('Raw user access data:', userAccess);
 
         // Group stores by user
         const storesMap: UserStoresMap = {};
@@ -53,15 +59,20 @@ export function useUserStores(userIds: string[]) {
           }
         });
 
+        console.log('Processed stores map:', storesMap);
         setUserStores(storesMap);
       } catch (err) {
         console.error('Error fetching user stores:', err);
+        // Set empty stores map on error instead of keeping loading state
+        setUserStores({});
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserStores();
+    // Add a small delay to prevent rapid-fire requests
+    const timeoutId = setTimeout(fetchUserStores, 100);
+    return () => clearTimeout(timeoutId);
   }, [userIds]);
 
   return { userStores, loading };

@@ -24,30 +24,44 @@ interface UserEditFormProps {
 const AVAILABLE_ROLES: UserRole[] = ['store_user', 'store_admin'];
 
 export default function UserEditForm({ editState, item, onEditStateChange }: UserEditFormProps) {
-  const { userRoles, updateUserRoles } = useUserRoles(editState.type === 'user' ? editState.id : undefined);
+  const { userRoles, loading } = useUserRoles(editState.type === 'user' ? editState.id : undefined);
   const [localRoles, setLocalRoles] = useState<UserRole[]>([]);
 
+  // Initialize local roles when user roles are fetched
   useEffect(() => {
-    if (editState.type === 'user' && userRoles.length > 0) {
+    if (editState.type === 'user' && userRoles.length >= 0 && !loading) {
+      console.log('Initializing roles for user:', editState.id, 'with roles:', userRoles);
       setLocalRoles(userRoles);
       onEditStateChange({
         ...editState,
         data: { ...editState.data, roles: userRoles }
       });
     }
-  }, [userRoles]);
+  }, [userRoles, loading, editState.id]);
 
   const handleRoleToggle = (role: UserRole) => {
+    console.log('Toggling role:', role, 'current roles:', localRoles);
     const newRoles = localRoles.includes(role)
       ? localRoles.filter(r => r !== role)
       : [...localRoles, role];
     
+    console.log('New roles after toggle:', newRoles);
     setLocalRoles(newRoles);
     onEditStateChange({
       ...editState,
       data: { ...editState.data, roles: newRoles }
     });
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center text-[#666666] py-4">
+          Loading user roles...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -111,6 +125,9 @@ export default function UserEditForm({ editState, item, onEditStateChange }: Use
               </span>
             </label>
           ))}
+        </div>
+        <div className="mt-2 text-xs text-[#666666]">
+          Current roles: {localRoles.length > 0 ? localRoles.join(', ') : 'None'}
         </div>
       </div>
     </div>

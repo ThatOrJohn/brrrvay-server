@@ -10,6 +10,7 @@ export function useUserRoles(userId?: string) {
   const fetchUserRoles = async (targetUserId: string) => {
     setLoading(true);
     try {
+      console.log('Fetching roles for user:', targetUserId);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -18,6 +19,7 @@ export function useUserRoles(userId?: string) {
       if (error) throw error;
       
       const roles = data?.map(item => item.role as UserRole) || [];
+      console.log('Fetched roles:', roles);
       setUserRoles(roles);
     } catch (error) {
       console.error('Error fetching user roles:', error);
@@ -29,11 +31,18 @@ export function useUserRoles(userId?: string) {
 
   const updateUserRoles = async (targetUserId: string, newRoles: UserRole[]) => {
     try {
+      console.log('Updating roles for user:', targetUserId, 'to:', newRoles);
+      
       // First, delete existing roles
-      await supabase
+      const { error: deleteError } = await supabase
         .from('user_roles')
         .delete()
         .eq('user_id', targetUserId);
+
+      if (deleteError) {
+        console.error('Error deleting existing roles:', deleteError);
+        throw deleteError;
+      }
 
       // Then insert new roles
       if (newRoles.length > 0) {
@@ -42,13 +51,18 @@ export function useUserRoles(userId?: string) {
           role
         }));
 
-        const { error } = await supabase
+        console.log('Inserting new roles:', roleData);
+        const { error: insertError } = await supabase
           .from('user_roles')
           .insert(roleData);
 
-        if (error) throw error;
+        if (insertError) {
+          console.error('Error inserting new roles:', insertError);
+          throw insertError;
+        }
       }
 
+      console.log('Roles updated successfully');
       setUserRoles(newRoles);
       return true;
     } catch (error) {
@@ -60,6 +74,8 @@ export function useUserRoles(userId?: string) {
   useEffect(() => {
     if (userId) {
       fetchUserRoles(userId);
+    } else {
+      setUserRoles([]);
     }
   }, [userId]);
 
