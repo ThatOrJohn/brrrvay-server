@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Store, Edit2, Plus, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Store, Edit2, Plus, MapPin, Settings, Monitor } from 'lucide-react';
 import Pagination from './Pagination';
 
 type StoreType = {
@@ -47,6 +47,19 @@ export default function StoresList({
   pagination,
   onPaginationChange
 }: StoresListProps) {
+  const navigate = useNavigate();
+
+  const handleGoToStoreTab = (
+    store: StoreType,
+    tab: "settings" | "agents"
+  ) => {
+    if (selectedOrgId && selectedConceptId) {
+      navigate(
+        `/admin/organizations/${selectedOrgId}/concepts/${selectedConceptId}/stores/${store.id}?tab=${tab}`
+      );
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br from-[#1A1A1A] to-[#1F1F1F] border border-[#333333]/50 rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm transform transition-all duration-300 hover:shadow-green-500/10 hover:border-green-500/30">
       {/* Enhanced header */}
@@ -105,13 +118,12 @@ export default function StoresList({
           <div className="space-y-2">
             {stores.map((store, index) => (
               <div 
-                key={store.id} 
+                key={store.id}
                 className={`flex items-center gap-2 group transform transition-all duration-300 ${!store.is_active ? 'opacity-60' : ''}`}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <Link
-                  to={`/admin/organizations/${selectedOrgId}/concepts/${selectedConceptId}/stores/${store.id}`}
-                  className={`flex-1 px-4 py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
+                <div
+                  className={`flex-1 px-4 py-3 rounded-lg transition-all duration-300 transform ${
                     selectedStoreId === store.id
                       ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/25 border-l-4 border-green-300'
                       : 'bg-[#2A2A2A]/50 text-white hover:bg-gradient-to-r hover:from-[#2A2A2A] hover:to-[#2F2F2F] border border-transparent hover:border-green-500/20'
@@ -135,13 +147,30 @@ export default function StoresList({
                       ID: {store.external_id}
                     </div>
                   )}
-                </Link>
-                <button
-                  onClick={() => onEditStore(store)}
-                  className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-gradient-to-r hover:from-green-500/20 hover:to-emerald-500/20 transition-all duration-300 opacity-0 group-hover:opacity-100 transform hover:scale-110 active:scale-95"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
+                </div>
+                {/* Action buttons */}
+                <div className="flex items-center gap-1 pr-2">
+                  <button
+                    title="Store Settings"
+                    onClick={() => handleGoToStoreTab(store, "settings")}
+                    className="p-2 text-indigo-500 hover:bg-indigo-600/10 rounded-lg transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                  <button
+                    title="Agent Management"
+                    onClick={() => handleGoToStoreTab(store, "agents")}
+                    className="p-2 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors"
+                  >
+                    <Monitor className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onEditStore(store)}
+                    className="p-2 text-[#666666] hover:text-white rounded-lg hover:bg-gradient-to-r hover:from-green-500/20 hover:to-emerald-500/20 transition-all duration-300"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
             

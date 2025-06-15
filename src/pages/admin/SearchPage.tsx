@@ -181,8 +181,10 @@ export default function SearchPage() {
         }
         break;
       case 'store':
-        if (result.concept_id) {
-          // Get the organization_id for this concept to build the full route
+        if (result.concept_id && result.organization_id) {
+          navigate(`/admin/organizations/${result.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=settings`);
+        } else if (result.concept_id) {
+          // Fallback: fetch org id via API if missing (from concept)
           const { data: concept } = await supabase
             .from('concepts')
             .select('organization_id')
@@ -190,7 +192,7 @@ export default function SearchPage() {
             .single();
           
           if (concept) {
-            navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}`);
+            navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=settings`);
           }
         }
         break;
@@ -213,15 +215,20 @@ export default function SearchPage() {
   };
 
   const handleManageAgents = async (result: SearchResult) => {
-    if (result.type === 'store' && result.concept_id) {
-      const { data: concept } = await supabase
-        .from('concepts')
-        .select('organization_id')
-        .eq('id', result.concept_id)
-        .single();
-      
-      if (concept) {
-        navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=agents`);
+    if (result.type === 'store') {
+      if (result.concept_id && result.organization_id) {
+        navigate(`/admin/organizations/${result.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=agents`);
+      } else if (result.concept_id) {
+        // Fallback: fetch org id via API if missing (from concept)
+        const { data: concept } = await supabase
+          .from('concepts')
+          .select('organization_id')
+          .eq('id', result.concept_id)
+          .single();
+        
+        if (concept) {
+          navigate(`/admin/organizations/${concept.organization_id}/concepts/${result.concept_id}/stores/${result.id}?tab=agents`);
+        }
       }
     }
   };
