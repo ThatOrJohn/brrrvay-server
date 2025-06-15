@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Shield, Users } from 'lucide-react';
+import BeerTapAnimation from '@/components/BeerTapAnimation';
 
 type UserStore = {
   id: string;
@@ -23,6 +23,9 @@ interface StoreUserDashboardProps {
 }
 
 export default function StoreUserDashboard({ store, user }: StoreUserDashboardProps) {
+  // Simulate alert count - in real implementation, this would come from your alert system
+  const alertCount = 0; // TODO: Connect to real alert data
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -34,6 +37,12 @@ export default function StoreUserDashboard({ store, user }: StoreUserDashboardPr
             Stay informed about important alerts and updates from your store's security agents.
           </p>
         </div>
+        
+        {/* Beer Tap Animation */}
+        <BeerTapAnimation 
+          alertCount={alertCount}
+          className="hidden md:block"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
