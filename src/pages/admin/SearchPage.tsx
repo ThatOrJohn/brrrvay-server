@@ -230,12 +230,16 @@ export default function SearchPage() {
     <div className="space-y-2">
       <h3 className="text-lg font-medium text-white">{result.name}</h3>
       <div className="text-sm text-[#666666]">
-        <div>Organization: {result.organization_name}</div>
+        <div>
+          Organization: {result.organization_name}
+          {showGuids && result.organization_id && (
+            <span className="font-mono text-xs ml-1">(id: {result.organization_id})</span>
+          )}
+        </div>
         {showGuids && (
-          <>
-            <div className="font-mono text-xs mt-1">Concept ID: {result.id}</div>
-            <div className="font-mono text-xs">Organization ID: {result.organization_id}</div>
-          </>
+          <div className="font-mono text-xs mt-1">
+            Concept ID: {result.id}
+          </div>
         )}
       </div>
     </div>
@@ -245,18 +249,26 @@ export default function SearchPage() {
     <div className="space-y-2">
       <h3 className="text-lg font-medium text-white">{result.name}</h3>
       <div className="text-sm text-[#666666] space-y-1">
-        <div>Organization: {result.organization_name}</div>
-        <div>Concept: {result.concept_name}</div>
+        <div>
+          Organization: {result.organization_name}
+          {showGuids && result.organization_id && (
+            <span className="font-mono text-xs ml-1">(id: {result.organization_id})</span>
+          )}
+        </div>
+        <div>
+          Concept: {result.concept_name}
+          {showGuids && result.concept_id && (
+            <span className="font-mono text-xs ml-1">(id: {result.concept_id})</span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Monitor className="w-3 h-3" />
           <span>{result.agent_count || 0} registered agent{result.agent_count !== 1 ? 's' : ''}</span>
         </div>
         {showGuids && (
-          <>
-            <div className="font-mono text-xs mt-1">Store ID: {result.id}</div>
-            <div className="font-mono text-xs">Concept ID: {result.concept_id}</div>
-            <div className="font-mono text-xs">Organization ID: {result.organization_id}</div>
-          </>
+          <div className="font-mono text-xs mt-1">
+            Store ID: {result.id}
+          </div>
         )}
       </div>
     </div>
@@ -347,6 +359,9 @@ export default function SearchPage() {
                         <p className="text-sm text-[#666666] mt-1">{result.details}</p>
                       )}
                       {showGuids && result.type === 'organization' && (
+                        <div className="text-xs font-mono text-[#666666] mt-1">ID: {result.id}</div>
+                      )}
+                      {showGuids && result.type === 'user' && (
                         <div className="text-xs font-mono text-[#666666] mt-1">ID: {result.id}</div>
                       )}
                     </div>
