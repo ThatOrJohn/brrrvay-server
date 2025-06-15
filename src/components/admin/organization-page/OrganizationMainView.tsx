@@ -1,10 +1,12 @@
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import OrganizationPageLayout from './OrganizationPageLayout';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useOrganizationActions } from '@/hooks/useOrganizationActions';
 import { useOrganizationPageState } from '@/hooks/useOrganizationPageState';
-import { Organization, Concept, Store, User } from '@/types/admin';
+import { useOrganizationDataEffects } from './OrganizationDataEffects';
+import { useOrganizationFormHandlers } from './OrganizationFormHandlers';
+import { useOrganizationEditHandlers } from './OrganizationEditHandlers';
 
 interface OrganizationMainViewProps {
   orgId: string | null;
@@ -84,119 +86,71 @@ export default function OrganizationMainView({
     resetEditState,
   } = useOrganizationPageState();
 
-  const onAddOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await handleAddOrganization(newOrgName, organizations, setOrganizations);
-    setNewOrgName('');
-  };
+  // Use data effects hook
+  useOrganizationDataEffects({
+    orgId,
+    conceptId,
+    storeId,
+    concepts,
+    stores,
+    conceptsPagination,
+    storesPagination,
+    fetchConcepts,
+    fetchStores,
+    fetchUsers,
+    setConceptsPagination,
+    setStoresPagination,
+  });
 
-  const onAddConcept = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await handleAddConcept(newConceptName, concepts, setConcepts);
-    setNewConceptName('');
-  };
+  // Use form handlers hook
+  const {
+    onAddOrganization,
+    onAddConcept,
+    onAddStore,
+    onAddUser,
+  } = useOrganizationFormHandlers({
+    newOrgName,
+    newConceptName,
+    newStoreName,
+    newStoreExternalId,
+    newUser,
+    orgId,
+    conceptId,
+    organizations,
+    concepts,
+    stores,
+    setNewOrgName,
+    setNewConceptName,
+    setNewStoreName,
+    setNewStoreExternalId,
+    resetNewUser,
+    handleAddOrganization,
+    handleAddConcept,
+    handleAddStore,
+    handleAddUser,
+    setOrganizations,
+    setConcepts,
+    setStores,
+  });
 
-  const onAddStore = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await handleAddStore(newStoreName, newStoreExternalId, stores, setStores);
-    setNewStoreName('');
-    setNewStoreExternalId('');
-  };
-
-  const onAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (orgId && conceptId) {
-      await handleAddUser(newUser, orgId, conceptId);
-      resetNewUser();
-    }
-  };
-
-  const onEdit = async () => {
-    await handleEdit(editState, organizations, concepts, stores, users);
-    resetEditState();
-  };
-
-  const getCurrentEditItem = () => {
-    if (!editState.type || !editState.id) return null;
-
-    switch (editState.type) {
-      case 'organization':
-        return organizations.find(o => o.id === editState.id);
-      case 'concept':
-        return concepts.find(c => c.id === editState.id);
-      case 'store':
-        return stores.find(s => s.id === editState.id);
-      case 'user':
-        return users.find(u => u.id === editState.id);
-      default:
-        return null;
-    }
-  };
-
-  // Use refs to track previous values and prevent infinite loops
-  const prevOrgIdRef = useRef<string | null>(null);
-  const prevConceptIdRef = useRef<string | null>(null);
-  const hasConceptsRef = useRef(false);
-  const hasStoresRef = useRef(false);
-
-  // Only fetch concepts when orgId actually changes and we don't have concepts yet
-  useEffect(() => {
-    if (orgId && orgId !== prevOrgIdRef.current && !hasConceptsRef.current) {
-      console.log('Fetching concepts for new orgId:', orgId);
-      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
-      prevOrgIdRef.current = orgId;
-      hasConceptsRef.current = true;
-    }
-  }, [orgId]); // Only depend on orgId
-
-  // Only fetch stores when conceptId actually changes and we don't have stores yet
-  useEffect(() => {
-    if (conceptId && conceptId !== prevConceptIdRef.current && !hasStoresRef.current) {
-      console.log('Fetching stores for new conceptId:', conceptId);
-      fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
-      prevConceptIdRef.current = conceptId;
-      hasStoresRef.current = true;
-    }
-  }, [conceptId]); // Only depend on conceptId
-
-  // Reset refs when navigation changes
-  useEffect(() => {
-    if (!orgId) {
-      hasConceptsRef.current = false;
-      prevOrgIdRef.current = null;
-    }
-  }, [orgId]);
-
-  useEffect(() => {
-    if (!conceptId) {
-      hasStoresRef.current = false;
-      prevConceptIdRef.current = null;
-    }
-  }, [conceptId]);
-
-  // Fetch concepts when pagination changes (only if we have an orgId and already have some concepts)
-  useEffect(() => {
-    if (orgId && hasConceptsRef.current && concepts.length > 0) {
-      console.log('Fetching concepts for pagination change');
-      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
-    }
-  }, [conceptsPagination.page, conceptsPagination.pageSize]);
-
-  // Fetch stores when pagination changes (only if we have a conceptId and already have some stores)
-  useEffect(() => {
-    if (conceptId && hasStoresRef.current && stores.length > 0) {
-      console.log('Fetching stores for pagination change');
-      fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
-    }
-  }, [storesPagination.page, storesPagination.pageSize]);
-
-  // Only fetch users when orgId or conceptId changes
-  useEffect(() => {
-    if (orgId) {
-      console.log('Fetching users for orgId:', orgId, 'conceptId:', conceptId);
-      fetchUsers(orgId, conceptId || undefined);
-    }
-  }, [orgId, conceptId]); // Only depend on these IDs
+  // Use edit handlers hook
+  const {
+    onEdit,
+    getCurrentEditItem,
+    onEditOrganization,
+    onEditConcept,
+    onEditStore,
+    onEditUser,
+  } = useOrganizationEditHandlers({
+    organizations,
+    concepts,
+    stores,
+    users,
+    editState,
+    setEditState,
+    resetEditState,
+    handleEdit,
+  });
   
   return (
     <OrganizationPageLayout
@@ -227,32 +181,10 @@ export default function OrganizationMainView({
       onAddConcept={onAddConcept}
       onAddStore={onAddStore}
       onAddUser={onAddUser}
-      onEditOrganization={(org: Organization) => setEditState({
-        type: 'organization',
-        id: org.id,
-        data: { name: org.name }
-      })}
-      onEditConcept={(concept: Concept) => setEditState({
-        type: 'concept',
-        id: concept.id,
-        data: { name: concept.name }
-      })}
-      onEditStore={(store: Store) => setEditState({
-        type: 'store',
-        id: store.id,
-        data: {
-          name: store.name,
-          external_id: store.external_id || ''
-        }
-      })}
-      onEditUser={(user: User) => setEditState({
-        type: 'user',
-        id: user.id,
-        data: {
-          email: user.email,
-          name: user.name || ''
-        }
-      })}
+      onEditOrganization={onEditOrganization}
+      onEditConcept={onEditConcept}
+      onEditStore={onEditStore}
+      onEditUser={onEditUser}
       onConceptsPaginationChange={setConceptsPagination}
       onStoresPaginationChange={setStoresPagination}
       onEditStateChange={setEditState}
