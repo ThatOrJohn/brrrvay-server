@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import BoltBadge from '@/components/BoltBadge';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -141,6 +142,8 @@ export default function AdminLoginPage() {
           </p>
         </div>
       </div>
+
+      <BoltBadge />
     </div>
   );
 }
