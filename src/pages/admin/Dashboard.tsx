@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Building2, Store, UserCheck, Settings, Key } from 'lucide-react';
-import StatCard from '@/components/admin/StatCard';
-import useDashboardStats from '@/hooks/useDashboardStats';
+import { StatCard } from '@/components/admin/StatCard';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 import PasswordChangeModal from '@/components/auth/PasswordChangeModal';
 import ImpersonationModal from '@/components/admin/ImpersonationModal';
 
@@ -48,31 +48,31 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Organizations"
-          value={stats.totalOrganizations}
+          value={loading ? 'Loading...' : stats.totalOrganizations}
           icon={Building2}
-          loading={loading}
           description="Active organizations"
+          color="blue"
         />
         <StatCard
           title="Total Stores"
-          value={stats.totalStores}
+          value={loading ? 'Loading...' : stats.totalStores}
           icon={Store}
-          loading={loading}
           description="Across all organizations"
+          color="green"
         />
         <StatCard
           title="External Users"
-          value={stats.totalUsers}
+          value={loading ? 'Loading...' : stats.totalUsers}
           icon={Users}
-          loading={loading}
           description="Registered external users"
+          color="purple"
         />
         <StatCard
-          title="Admin Users"
-          value={stats.totalInternalUsers}
+          title="Active Trials"
+          value={loading ? 'Loading...' : stats.activeTrials}
           icon={Settings}
-          loading={loading}
-          description="Internal admin users"
+          description="Current active trials"
+          color="orange"
         />
       </div>
 
