@@ -69,6 +69,9 @@ export default function OrganizationManagementGrid({
   onConceptsPaginationChange,
   onStoresPaginationChange,
 }: OrganizationManagementGridProps) {
+  // Get selected organization data
+  const selectedOrg = selectedOrgId ? organizations.find(org => org.id === selectedOrgId) : null;
+
   return (
     <div className="space-y-8">
       {/* Enhanced grid with stagger animation */}
@@ -125,6 +128,8 @@ export default function OrganizationManagementGrid({
             onNewUserChange={onNewUserChange}
             onAddUser={onAddUser}
             onEditUser={onEditUser}
+            organizationId={selectedOrgId}
+            organizationName={selectedOrg?.name}
           />
         </div>
       )}

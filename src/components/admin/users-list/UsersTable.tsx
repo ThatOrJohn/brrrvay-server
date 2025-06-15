@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Edit2, Eye, EyeOff, Store } from 'lucide-react';
+import { Edit2, Eye, EyeOff, Store, UserCheck } from 'lucide-react';
 import { UserRole } from '@/types/admin';
 
 type UserType = {
@@ -18,9 +18,15 @@ interface UsersTableProps {
   users: UserType[];
   onEditUser: (user: UserType) => void;
   onManageStores: (user: UserType) => void;
+  onImpersonateUser?: (user: UserType) => void;
 }
 
-export default function UsersTable({ users, onEditUser, onManageStores }: UsersTableProps) {
+export default function UsersTable({ 
+  users, 
+  onEditUser, 
+  onManageStores, 
+  onImpersonateUser 
+}: UsersTableProps) {
   const formatRoles = (roles: UserRole[] | undefined) => {
     if (!roles || roles.length === 0) return 'No roles';
     return roles.map(role => 
@@ -83,6 +89,15 @@ export default function UsersTable({ users, onEditUser, onManageStores }: UsersT
                       <Store className="w-4 h-4" />
                       Stores
                     </button>
+                    {onImpersonateUser && user.is_active && (
+                      <button
+                        onClick={() => onImpersonateUser(user)}
+                        className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        Impersonate
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
