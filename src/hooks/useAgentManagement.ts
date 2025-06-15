@@ -13,6 +13,7 @@ export function useAgentManagement() {
     loading: tokenHook.loading || actionsHook.loading,
     generateRegistrationToken: tokenHook.generateRegistrationToken,
     fetchRegistrationTokens: tokenHook.fetchRegistrationTokens,
+    deleteRegistrationToken: tokenHook.deleteRegistrationToken,
     
     // Agent queries
     fetchAgents: queriesHook.fetchAgents,

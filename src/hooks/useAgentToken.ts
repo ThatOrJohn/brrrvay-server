@@ -78,9 +78,37 @@ export function useAgentToken() {
     }
   };
 
+  const deleteRegistrationToken = async (tokenId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('agent_registration_tokens')
+        .delete()
+        .eq('id', tokenId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Registration token deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting token:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to delete registration token',
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     generateRegistrationToken,
     fetchRegistrationTokens,
+    deleteRegistrationToken,
   };
 }

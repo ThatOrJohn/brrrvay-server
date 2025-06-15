@@ -3,17 +3,19 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Copy } from 'lucide-react';
+import { Clock, Copy, Trash2 } from 'lucide-react';
 import { AgentRegistrationToken } from '@/types/agent';
 
 interface RegistrationTokensListProps {
   tokens: AgentRegistrationToken[];
   onCopyToken: (token: string) => void;
+  onDeleteToken: (tokenId: string) => void;
 }
 
 export default function RegistrationTokensList({ 
   tokens, 
-  onCopyToken 
+  onCopyToken,
+  onDeleteToken
 }: RegistrationTokensListProps) {
   const isTokenExpired = (expiresAt: string) => {
     return new Date(expiresAt) < new Date();
@@ -73,6 +75,14 @@ export default function RegistrationTokensList({
                         Active
                       </Badge>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onDeleteToken(token.id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-gray-400">

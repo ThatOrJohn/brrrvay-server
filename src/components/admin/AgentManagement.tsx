@@ -19,6 +19,7 @@ export default function AgentManagement({ storeId, storeName }: AgentManagementP
     generateRegistrationToken,
     fetchStoreAgents,
     fetchRegistrationTokens,
+    deleteRegistrationToken,
     removeAgentFromStore,
   } = useAgentManagement();
 
@@ -58,6 +59,15 @@ export default function AgentManagement({ storeId, storeName }: AgentManagementP
     });
   };
 
+  const handleDeleteToken = async (tokenId: string) => {
+    try {
+      await deleteRegistrationToken(tokenId);
+      loadData(); // Refresh tokens list
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
+
   const handleRemoveAgent = async (storeAgentId: string) => {
     try {
       await removeAgentFromStore(storeAgentId);
@@ -82,6 +92,7 @@ export default function AgentManagement({ storeId, storeName }: AgentManagementP
       <RegistrationTokensList
         tokens={registrationTokens}
         onCopyToken={handleCopyToken}
+        onDeleteToken={handleDeleteToken}
       />
 
       <AssignedAgentsList
