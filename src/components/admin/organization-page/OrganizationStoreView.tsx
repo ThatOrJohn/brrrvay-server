@@ -12,6 +12,7 @@ interface OrganizationStoreViewProps {
   selectedConcept: string | null;
   storeId: string;
   selectedStore: Store;
+  initialTab?: "settings" | "agents";
 }
 
 export default function OrganizationStoreView({
@@ -22,6 +23,7 @@ export default function OrganizationStoreView({
   selectedConcept,
   storeId,
   selectedStore,
+  initialTab = "settings",
 }: OrganizationStoreViewProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 pb-8">
@@ -39,6 +41,7 @@ export default function OrganizationStoreView({
       <StoreDetails 
         store={selectedStore} 
         storeName={selectedStore.name}
+        initialTab={initialTab}
       />
     </div>
   );

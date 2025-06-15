@@ -17,11 +17,12 @@ interface StoreDetailsProps {
     is_active: boolean;
   };
   storeName: string;
+  initialTab?: "settings" | "agents";
 }
 
-export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
+export default function StoreDetails({ store, storeName, initialTab }: StoreDetailsProps) {
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'settings';
+  const tab = initialTab || searchParams.get('tab') || 'settings';
 
   return (
     <div className="space-y-6">
@@ -41,7 +42,7 @@ export default function StoreDetails({ store, storeName }: StoreDetailsProps) {
         </div>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs defaultValue={tab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-[#1A1A1A] border border-[#333333]">
           <TabsTrigger 
             value="settings" 
