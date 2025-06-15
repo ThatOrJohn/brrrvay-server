@@ -1,12 +1,9 @@
+
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import OrganizationsList from '@/components/admin/OrganizationsList';
-import ConceptsList from '@/components/admin/ConceptsList';
-import StoresList from '@/components/admin/StoresList';
 import StoreDetails from '@/components/admin/StoreDetails';
-import UsersList from '@/components/admin/UsersList';
-import EditModal from '@/components/admin/EditModal';
-import Breadcrumbs from '@/components/admin/Breadcrumbs';
+import OrganizationPageLayout from '@/components/admin/organization-page/OrganizationPageLayout';
+import OrganizationBreadcrumbsContainer from '@/components/admin/organization-page/OrganizationBreadcrumbsContainer';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useOrganizationActions } from '@/hooks/useOrganizationActions';
 import { EditState, NewUser } from '@/types/admin';
@@ -132,19 +129,6 @@ export default function OrganizationsPage() {
     }
   };
 
-  // Get breadcrumb data
-  const getBreadcrumbData = () => {
-    const selectedOrgData = selectedOrg ? organizations.find(o => o.id === selectedOrg) : null;
-    const selectedConceptData = selectedConcept ? concepts.find(c => c.id === selectedConcept) : null;
-    const selectedStoreData = storeId ? stores.find(s => s.id === storeId) : null;
-
-    return {
-      selectedOrg: selectedOrgData ? { id: selectedOrgData.id, name: selectedOrgData.name } : null,
-      selectedConcept: selectedConceptData ? { id: selectedConceptData.id, name: selectedConceptData.name } : null,
-      selectedStore: selectedStoreData ? { id: selectedStoreData.id, name: selectedStoreData.name } : null,
-    };
-  };
-
   // Get selected store data
   const selectedStore = storeId ? stores.find(s => s.id === storeId) : null;
 
@@ -153,7 +137,14 @@ export default function OrganizationsPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 pb-8">
         <div className="mb-8">
-          <Breadcrumbs {...getBreadcrumbData()} />
+          <OrganizationBreadcrumbsContainer
+            organizations={organizations}
+            concepts={concepts}
+            stores={stores}
+            selectedOrg={selectedOrg}
+            selectedConcept={selectedConcept}
+            storeId={storeId}
+          />
         </div>
         
         <StoreDetails 
@@ -165,117 +156,66 @@ export default function OrganizationsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-8 animate-fade-in">
-      {/* Enhanced header with subtle animations */}
-      <div className="mb-8 transform transition-all duration-300 hover:scale-[1.01]">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-          Organization Management
-        </h1>
-        <p className="text-[#888888] transition-colors duration-300 hover:text-[#aaaaaa]">
-          Manage your organizations, concepts, stores, and users with ease
-        </p>
-      </div>
-      
-      <div className="transform transition-all duration-300">
-        <Breadcrumbs {...getBreadcrumbData()} />
-      </div>
-
-      {error && (
-        <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/30 rounded-xl p-4 mb-8 text-sm text-red-400 flex items-center animate-scale-in backdrop-blur-sm">
-          <div className="w-4 h-4 bg-red-500 rounded-full mr-3 flex-shrink-0 animate-pulse"></div>
-          <span className="font-medium">{error}</span>
-        </div>
-      )}
-
-      <div className="space-y-8">
-        {/* Enhanced grid with stagger animation */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-            <OrganizationsList
-              organizations={organizations}
-              selectedOrgId={orgId || null}
-              newOrgName={newOrgName}
-              onNewOrgNameChange={setNewOrgName}
-              onAddOrganization={onAddOrganization}
-              onEditOrganization={(org) => setEditState({
-                type: 'organization',
-                id: org.id,
-                data: { name: org.name }
-              })}
-            />
-          </div>
-
-          <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <ConceptsList
-              concepts={concepts}
-              selectedOrgId={orgId || null}
-              selectedConceptId={conceptId || null}
-              newConceptName={newConceptName}
-              onNewConceptNameChange={setNewConceptName}
-              onAddConcept={onAddConcept}
-              onEditConcept={(concept) => setEditState({
-                type: 'concept',
-                id: concept.id,
-                data: { name: concept.name }
-              })}
-              pagination={conceptsPagination}
-              onPaginationChange={setConceptsPagination}
-            />
-          </div>
-
-          <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-            <StoresList
-              stores={stores}
-              selectedOrgId={orgId || null}
-              selectedConceptId={conceptId || null}
-              selectedStoreId={storeId || null}
-              newStoreName={newStoreName}
-              newStoreExternalId={newStoreExternalId}
-              onNewStoreNameChange={setNewStoreName}
-              onNewStoreExternalIdChange={setNewStoreExternalId}
-              onAddStore={onAddStore}
-              onEditStore={(store) => setEditState({
-                type: 'store',
-                id: store.id,
-                data: {
-                  name: store.name,
-                  external_id: store.external_id || ''
-                }
-              })}
-              pagination={storesPagination}
-              onPaginationChange={setStoresPagination}
-            />
-          </div>
-        </div>
-
-        {orgId && (
-          <div className="animate-fade-in" style={{ animationDelay: '400ms' }}>
-            <UsersList
-              users={users}
-              stores={stores}
-              newUser={newUser}
-              onNewUserChange={handleNewUserChange}
-              onAddUser={onAddUser}
-              onEditUser={(user) => setEditState({
-                type: 'user',
-                id: user.id,
-                data: {
-                  email: user.email,
-                  name: user.name || ''
-                }
-              })}
-            />
-          </div>
-        )}
-      </div>
-
-      <EditModal
-        editState={editState}
-        item={getCurrentEditItem()}
-        onEditStateChange={setEditState}
-        onSave={onEdit}
-        onToggleActive={handleToggleActive}
-      />
-    </div>
+    <OrganizationPageLayout
+      organizations={organizations}
+      concepts={concepts}
+      stores={stores}
+      users={users}
+      selectedOrg={selectedOrg}
+      selectedConcept={selectedConcept}
+      orgId={orgId || null}
+      conceptId={conceptId || null}
+      storeId={storeId || null}
+      conceptsPagination={conceptsPagination}
+      storesPagination={storesPagination}
+      editState={editState}
+      newOrgName={newOrgName}
+      newConceptName={newConceptName}
+      newStoreName={newStoreName}
+      newStoreExternalId={newStoreExternalId}
+      newUser={newUser}
+      error={error}
+      onNewOrgNameChange={setNewOrgName}
+      onNewConceptNameChange={setNewConceptName}
+      onNewStoreNameChange={setNewStoreName}
+      onNewStoreExternalIdChange={setNewStoreExternalId}
+      onNewUserChange={handleNewUserChange}
+      onAddOrganization={onAddOrganization}
+      onAddConcept={onAddConcept}
+      onAddStore={onAddStore}
+      onAddUser={onAddUser}
+      onEditOrganization={(org) => setEditState({
+        type: 'organization',
+        id: org.id,
+        data: { name: org.name }
+      })}
+      onEditConcept={(concept) => setEditState({
+        type: 'concept',
+        id: concept.id,
+        data: { name: concept.name }
+      })}
+      onEditStore={(store) => setEditState({
+        type: 'store',
+        id: store.id,
+        data: {
+          name: store.name,
+          external_id: store.external_id || ''
+        }
+      })}
+      onEditUser={(user) => setEditState({
+        type: 'user',
+        id: user.id,
+        data: {
+          email: user.email,
+          name: user.name || ''
+        }
+      })}
+      onConceptsPaginationChange={setConceptsPagination}
+      onStoresPaginationChange={setStoresPagination}
+      onEditStateChange={setEditState}
+      onEdit={onEdit}
+      onToggleActive={handleToggleActive}
+      getCurrentEditItem={getCurrentEditItem}
+    />
   );
 }
