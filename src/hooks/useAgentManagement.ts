@@ -61,7 +61,15 @@ export function useAgentManagement() {
         .order('name');
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to match our Agent type
+      const transformedData = (data || []).map(agent => ({
+        ...agent,
+        status: agent.status as Agent['status'],
+        config: (agent.config as Record<string, any>) || {},
+      }));
+      
+      return transformedData;
     } catch (error) {
       console.error('Error fetching agents:', error);
       toast({
@@ -87,7 +95,19 @@ export function useAgentManagement() {
         .order('assigned_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to match our StoreAgent type
+      const transformedData = (data || []).map(storeAgent => ({
+        ...storeAgent,
+        config: (storeAgent.config as Record<string, any>) || {},
+        agent: storeAgent.agent ? {
+          ...storeAgent.agent,
+          status: storeAgent.agent.status as Agent['status'],
+          config: (storeAgent.agent.config as Record<string, any>) || {},
+        } : undefined,
+      }));
+      
+      return transformedData;
     } catch (error) {
       console.error('Error fetching store agents:', error);
       toast({
