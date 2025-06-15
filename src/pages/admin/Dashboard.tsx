@@ -1,182 +1,157 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { StatCard } from '@/components/admin/StatCard';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Database, 
-  Activity, 
-  Monitor, 
-  Clock, 
-  BarChart, 
-  Settings,
-  Plus,
-  Users,
-  Timer,
-  Cog
-} from 'lucide-react';
+import { Users, Building2, Store, UserCheck, Settings, Key } from 'lucide-react';
+import StatCard from '@/components/admin/StatCard';
+import useDashboardStats from '@/hooks/useDashboardStats';
+import PasswordChangeModal from '@/components/auth/PasswordChangeModal';
+import ImpersonationModal from '@/components/admin/ImpersonationModal';
 
 export default function AdminDashboard() {
-  const { stats, loading, error } = useDashboardStats();
-  const navigate = useNavigate();
+  const { stats, loading } = useDashboardStats();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showImpersonationModal, setShowImpersonationModal] = useState(false);
 
-  const handleAddOrganization = () => {
-    navigate('/admin/organizations');
-  };
-
-  const handleViewAllUsers = () => {
-    navigate('/admin/search');
-  };
-
-  const handleManageTrials = () => {
-    // Navigate to organizations page where trials can be managed
-    navigate('/admin/organizations');
-  };
-
-  const handleSystemSettings = () => {
-    // For now, navigate to dashboard - could be expanded later
-    navigate('/admin/dashboard');
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <p className="text-red-600">Error loading dashboard: {error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Get current internal user from auth session
+  const currentUserId = 'temp-user-id'; // This should come from auth context
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-sm text-gray-500">Overview of your platform</p>
+        <div>
+          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+          <p className="text-gray-400 mt-2">
+            Monitor and manage your organizations, stores, and users
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <Button
+            onClick={() => setShowPasswordModal(true)}
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <Key className="w-4 h-4 mr-2" />
+            Change Password
+          </Button>
+          <Button
+            onClick={() => setShowImpersonationModal(true)}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            <UserCheck className="w-4 h-4 mr-2" />
+            Impersonate User
+          </Button>
+        </div>
       </div>
 
-      {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Organizations"
           value={stats.totalOrganizations}
-          icon={Database}
-          description={`${stats.activeOrganizations} active`}
-          color="blue"
+          icon={Building2}
+          loading={loading}
+          description="Active organizations"
         />
-        
-        <StatCard
-          title="Active Trials"
-          value={stats.activeTrials}
-          icon={Clock}
-          description="Current trial subscriptions"
-          color="green"
-        />
-        
-        <StatCard
-          title="Total Users"
-          value={stats.totalUsers}
-          icon={Activity}
-          description="Across all organizations"
-          color="purple"
-        />
-      </div>
-
-      {/* Secondary Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard
-          title="Active Organizations"
-          value={stats.activeOrganizations}
-          icon={Monitor}
-          description="Currently operational"
-          color="indigo"
-        />
-        
-        <StatCard
-          title="Total Concepts"
-          value={stats.totalConcepts}
-          icon={BarChart}
-          description="Business concepts created"
-          color="green"
-        />
-        
         <StatCard
           title="Total Stores"
           value={stats.totalStores}
+          icon={Store}
+          loading={loading}
+          description="Across all organizations"
+        />
+        <StatCard
+          title="External Users"
+          value={stats.totalUsers}
+          icon={Users}
+          loading={loading}
+          description="Registered external users"
+        />
+        <StatCard
+          title="Admin Users"
+          value={stats.totalInternalUsers}
           icon={Settings}
-          description="Store locations managed"
-          color="purple"
+          loading={loading}
+          description="Internal admin users"
         />
       </div>
 
-      {/* Quick Actions Section */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <Building2 className="w-5 h-5 mr-2" />
+              Organizations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-400 mb-4">
+              Manage organizations, concepts, and stores
+            </p>
             <Button 
-              onClick={handleAddOrganization}
-              className="flex items-center gap-2"
-              variant="default"
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => window.location.href = '/admin/organizations'}
             >
-              <Plus className="w-4 h-4" />
-              Add Organization
+              Manage Organizations
             </Button>
-            
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              User Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-400 mb-4">
+              Manage external users and their permissions
+            </p>
             <Button 
-              onClick={handleViewAllUsers}
-              className="flex items-center gap-2"
-              variant="outline"
+              className="w-full bg-green-600 hover:bg-green-700"
+              onClick={() => window.location.href = '/admin/organizations'}
             >
-              <Users className="w-4 h-4" />
-              View All Users
+              Manage Users
             </Button>
-            
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <Settings className="w-5 h-5 mr-2" />
+              Agent Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-400 mb-4">
+              Configure and monitor security agents
+            </p>
             <Button 
-              onClick={handleManageTrials}
-              className="flex items-center gap-2"
-              variant="outline"
+              className="w-full bg-purple-600 hover:bg-purple-700"
+              onClick={() => window.location.href = '/admin/agents'}
             >
-              <Timer className="w-4 h-4" />
-              Manage Trials
+              Manage Agents
             </Button>
-            
-            <Button 
-              onClick={handleSystemSettings}
-              className="flex items-center gap-2"
-              variant="outline"
-            >
-              <Cog className="w-4 h-4" />
-              System Settings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Modals */}
+      <PasswordChangeModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        userId={currentUserId}
+        isExternalUser={false}
+      />
+
+      <ImpersonationModal
+        isOpen={showImpersonationModal}
+        onClose={() => setShowImpersonationModal(false)}
+        currentInternalUserId={currentUserId}
+      />
     </div>
   );
 }

@@ -2,8 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Key, LogOut, UserX } from 'lucide-react';
 import StoreUserDashboard from '@/components/dashboard/StoreUserDashboard';
 import StoreAdminDashboard from '@/components/dashboard/StoreAdminDashboard';
+import PasswordChangeModal from '@/components/auth/PasswordChangeModal';
+import { useImpersonation } from '@/hooks/useImpersonation';
 
 type UserStore = {
   id: string;
@@ -24,14 +28,16 @@ export default function DashboardPage() {
   const [userStores, setUserStores] = useState<UserStore[]>([]);
   const [selectedStore, setSelectedStore] = useState<UserStore | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const navigate = useNavigate();
+  const { isImpersonating, stopImpersonation } = useImpersonation();
 
   useEffect(() => {
     const initializeDashboard = async () => {
       try {
         // Check if user is authenticated
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        if (!session && !isImpersonating) {
           navigate('/');
           return;
         }
@@ -85,12 +91,16 @@ export default function DashboardPage() {
     };
 
     initializeDashboard();
-  }, [navigate]);
+  }, [navigate, isImpersonating]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem('currentUser');
-    navigate('/');
+    if (isImpersonating) {
+      await stopImpersonation();
+    } else {
+      await supabase.auth.signOut();
+      localStorage.removeItem('currentUser');
+      navigate('/');
+    }
   };
 
   if (loading) {
@@ -128,6 +138,13 @@ export default function DashboardPage() {
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-bold text-white">Brrrvay Dashboard</h1>
             
+            {/* Impersonation Banner */}
+            {isImpersonating && (
+              <div className="bg-yellow-600 text-yellow-100 px-3 py-1 rounded-full text-sm font-medium">
+                Impersonating User
+              </div>
+            )}
+            
             {/* Store Selector */}
             {userStores.length > 1 && (
               <select
@@ -161,12 +178,37 @@ export default function DashboardPage() {
                 </span>
               ))}
             </div>
-            <button
+            
+            {!isImpersonating && (
+              <Button
+                onClick={() => setShowPasswordModal(true)}
+                variant="outline"
+                size="sm"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <Key className="w-4 h-4 mr-2" />
+                Change Password
+              </Button>
+            )}
+            
+            <Button
               onClick={handleLogout}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              variant="outline"
+              size="sm"
+              className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
             >
-              Logout
-            </button>
+              {isImpersonating ? (
+                <>
+                  <UserX className="w-4 h-4 mr-2" />
+                  Stop Impersonation
+                </>
+              ) : (
+                <>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </header>
@@ -185,6 +227,14 @@ export default function DashboardPage() {
           />
         )}
       </main>
+
+      {/* Password Change Modal */}
+      <PasswordChangeModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        userId={currentUser.id}
+        isExternalUser={true}
+      />
     </div>
   );
 }
