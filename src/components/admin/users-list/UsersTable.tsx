@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Edit2, Store, UserCheck, MoreHorizontal, Search, Filter, ArrowUpDown } from 'lucide-react';
 import { UserRole } from '@/types/admin';
@@ -19,6 +18,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import UserStoreBadges from './UserStoreBadges';
+import { useUserStores } from '@/hooks/useUserStores';
 
 type UserType = {
   id: string;
@@ -51,6 +52,10 @@ export default function UsersTable({
   const [showInactive, setShowInactive] = useState(false);
   const [sortField, setSortField] = useState<SortField>('email');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // Fetch stores for all users
+  const userIds = users.map(user => user.id);
+  const { userStores, loading: storesLoading } = useUserStores(userIds);
 
   const formatRoles = (roles: UserRole[] | undefined) => {
     if (!roles || roles.length === 0) return 'No roles';
@@ -174,6 +179,7 @@ export default function UsersTable({
               <TableHead className="text-[#999999]">
                 <SortButton field="roles">Roles</SortButton>
               </TableHead>
+              <TableHead className="text-[#999999]">Store Access</TableHead>
               <TableHead className="text-[#999999] w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -212,6 +218,13 @@ export default function UsersTable({
                   >
                     {formatRoles(user.roles)}
                   </Badge>
+                </TableCell>
+
+                <TableCell className="py-4">
+                  <UserStoreBadges 
+                    stores={userStores[user.id] || []} 
+                    maxVisible={2}
+                  />
                 </TableCell>
                 
                 <TableCell className="py-4">
@@ -261,7 +274,7 @@ export default function UsersTable({
             
             {filteredAndSortedUsers.length === 0 && (
               <TableRow className="border-[#333333]">
-                <TableCell colSpan={3} className="py-12 text-center text-[#999999]">
+                <TableCell colSpan={4} className="py-12 text-center text-[#999999]">
                   {searchTerm ? (
                     <div>
                       <p>No users found matching "{searchTerm}"</p>
