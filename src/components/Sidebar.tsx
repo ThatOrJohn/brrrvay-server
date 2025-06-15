@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Monitor } from 'lucide-react';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -38,15 +37,6 @@ export default function Sidebar() {
           className={linkClass('/admin/dashboard')}
         >
           Dashboard
-        </Link>
-        <Link
-          to="/admin/agents"
-          className={linkClass('/admin/agents')}
-        >
-          <div className="flex items-center gap-2">
-            <Monitor className="w-4 h-4" />
-            Agent Management
-          </div>
         </Link>
       </nav>
     </aside>

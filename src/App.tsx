@@ -6,7 +6,6 @@ import AdminLoginPage from './pages/admin/LoginPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import SearchPage from './pages/admin/SearchPage';
 import OrganizationsPage from './pages/admin/OrganizationsPage';
-import AgentManagementPage from './pages/admin/AgentManagementPage';
 import PublicLayout from './layouts/PublicLayout';
 import AdminLayout from './layouts/AdminLayout';
 import NotFound from './pages/NotFound';
@@ -32,7 +31,6 @@ function App() {
           <Route path="organizations/:orgId" element={<OrganizationsPage />} />
           <Route path="organizations/:orgId/concepts/:conceptId" element={<OrganizationsPage />} />
           <Route path="organizations/:orgId/concepts/:conceptId/stores/:storeId" element={<OrganizationsPage />} />
-          <Route path="agents" element={<AgentManagementPage />} />
         </Route>
 
         {/* 404 */}
