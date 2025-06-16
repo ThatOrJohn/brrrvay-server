@@ -37,22 +37,22 @@ export default function OrganizationMainView({
     fetchConcepts,
     fetchStores,
     fetchUsers,
-    resetFetchTracking,
+    forceRefresh,
   } = useOrganizationData();
 
   // WRAPPER FETCH functions for useOrganizationActions (correct signature)
   const fetchConceptsWrapper = (orgIdToFetch: string) => {
-    resetFetchTracking(['concepts']);
+    forceRefresh(['concepts']);
     fetchConcepts(orgIdToFetch, conceptsPagination, setConceptsPagination, conceptId, storeId);
   };
 
   const fetchStoresWrapper = (conceptIdToFetch: string) => {
-    resetFetchTracking(['stores']);
+    forceRefresh(['stores']);
     fetchStores(conceptIdToFetch, storesPagination, setStoresPagination, storeId);
   };
 
   const fetchUsersWrapper = (orgIdToFetch: string) => {
-    resetFetchTracking(['users']);
+    forceRefresh(['users']);
     fetchUsers(orgIdToFetch, conceptId || undefined);
   };
 
@@ -67,13 +67,12 @@ export default function OrganizationMainView({
     selectedOrg,
     selectedConcept,
     onRefreshOrganizations: () => {
-      resetFetchTracking(['organizations']);
+      forceRefresh(['organizations']);
       fetchOrganizations();
     },
     onRefreshConcepts: fetchConceptsWrapper,
     onRefreshStores: fetchStoresWrapper,
     onRefreshUsers: fetchUsersWrapper,
-    resetDataLoaded: resetFetchTracking,
   });
 
   const {

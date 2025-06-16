@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { PaginationState } from '@/types/admin';
 
 interface OrganizationDataEffectsProps {
@@ -31,42 +31,86 @@ export function useOrganizationDataEffects({
   setStoresPagination,
 }: OrganizationDataEffectsProps) {
   
-  // Fetch concepts when orgId is available (only once per unique combination)
+  // Track what we've already triggered to prevent duplicate calls
+  const triggeredRef = useRef({
+    concepts: new Set<string>(),
+    stores: new Set<string>(),
+    users: new Set<string>(),
+  });
+
+  // Fetch concepts when orgId changes (only once per unique combination)
   useEffect(() => {
     if (orgId) {
-      console.log('Effect: Fetching concepts for orgId:', orgId);
-      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
+      const key = `${orgId}-${conceptId || ''}-${storeId || ''}`;
+      if (!triggeredRef.current.concepts.has(key)) {
+        console.log('Effect: Triggering concepts fetch for:', key);
+        triggeredRef.current.concepts.add(key);
+        fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
+      }
     }
-  }, [orgId]); // Only depend on orgId
+  }, [orgId]); // Only orgId dependency
 
-  // Fetch stores when conceptId is available (only once per unique combination)
+  // Fetch stores when conceptId changes (only once per unique combination)
   useEffect(() => {
     if (conceptId) {
-      console.log('Effect: Fetching stores for conceptId:', conceptId);
-      fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
+      const key = `${conceptId}-${storeId || ''}`;
+      if (!triggeredRef.current.stores.has(key)) {
+        console.log('Effect: Triggering stores fetch for:', key);
+        triggeredRef.current.stores.add(key);
+        fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
+      }
     }
-  }, [conceptId]); // Only depend on conceptId
+  }, [conceptId]); // Only conceptId dependency
 
-  // Fetch users when orgId is available (only once per unique combination)
+  // Fetch users when orgId or conceptId changes (only once per unique combination)
   useEffect(() => {
     if (orgId) {
-      console.log('Effect: Fetching users for orgId:', orgId, 'conceptId:', conceptId);
-      fetchUsers(orgId, conceptId || undefined);
+      const key = `${orgId}-${conceptId || ''}`;
+      if (!triggeredRef.current.users.has(key)) {
+        console.log('Effect: Triggering users fetch for:', key);
+        triggeredRef.current.users.add(key);
+        fetchUsers(orgId, conceptId || undefined);
+      }
     }
-  }, [orgId, conceptId]); // Depend on both orgId and conceptId since users can be filtered by concept
+  }, [orgId, conceptId]); // Both dependencies since users can be filtered by concept
 
-  // Handle pagination changes separately (only when we have existing data)
+  // Clear triggered flags when navigation changes
   useEffect(() => {
-    if (orgId && concepts.length > 0 && (conceptsPagination.page > 1 || conceptsPagination.pageSize !== 10)) {
-      console.log('Effect: Fetching concepts for pagination change');
+    return () => {
+      triggeredRef.current.concepts.clear();
+      triggeredRef.current.stores.clear();
+      triggeredRef.current.users.clear();
+    };
+  }, [orgId, conceptId, storeId]);
+
+  // Handle pagination changes separately (only when we have data and pagination actually changed)
+  const prevPaginationRef = useRef({ concepts: conceptsPagination, stores: storesPagination });
+  
+  useEffect(() => {
+    const prevConceptsPagination = prevPaginationRef.current.concepts;
+    if (
+      orgId && 
+      concepts.length > 0 && 
+      (conceptsPagination.page !== prevConceptsPagination.page || 
+       conceptsPagination.pageSize !== prevConceptsPagination.pageSize)
+    ) {
+      console.log('Effect: Concepts pagination changed, fetching new page');
       fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
     }
+    prevPaginationRef.current.concepts = conceptsPagination;
   }, [conceptsPagination.page, conceptsPagination.pageSize]);
 
   useEffect(() => {
-    if (conceptId && stores.length > 0 && (storesPagination.page > 1 || storesPagination.pageSize !== 10)) {
-      console.log('Effect: Fetching stores for pagination change');
+    const prevStoresPagination = prevPaginationRef.current.stores;
+    if (
+      conceptId && 
+      stores.length > 0 && 
+      (storesPagination.page !== prevStoresPagination.page || 
+       storesPagination.pageSize !== prevStoresPagination.pageSize)
+    ) {
+      console.log('Effect: Stores pagination changed, fetching new page');
       fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
     }
+    prevPaginationRef.current.stores = storesPagination;
   }, [storesPagination.page, storesPagination.pageSize]);
 }
