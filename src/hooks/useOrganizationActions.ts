@@ -1,4 +1,3 @@
-
 import { EditState, NewUser } from '@/types/admin';
 import { useEntityActions } from './useEntityActions';
 import { useEntityEditor } from './useEntityEditor';
@@ -14,6 +13,7 @@ interface UseOrganizationActionsProps {
   onRefreshConcepts: (orgId: string) => void;
   onRefreshStores: (conceptId: string) => void;
   onRefreshUsers: (orgId: string) => void;
+  resetDataLoaded?: (keys: string[]) => void;
 }
 
 export function useOrganizationActions({
@@ -23,6 +23,7 @@ export function useOrganizationActions({
   onRefreshConcepts,
   onRefreshStores,
   onRefreshUsers,
+  resetDataLoaded,
 }: UseOrganizationActionsProps) {
   const { handleToggleActive: baseToggleActive } = useEntityActions({
     onRefresh: () => {
@@ -57,15 +58,25 @@ export function useOrganizationActions({
       switch (type) {
         case 'organization':
           onRefreshOrganizations();
+          resetDataLoaded?.(['organizations']);
           break;
         case 'concept':
-          if (selectedOrg) onRefreshConcepts(selectedOrg);
+          if (selectedOrg) {
+            onRefreshConcepts(selectedOrg);
+            resetDataLoaded?.(['concepts']);
+          }
           break;
         case 'store':
-          if (selectedConcept) onRefreshStores(selectedConcept);
+          if (selectedConcept) {
+            onRefreshStores(selectedConcept);
+            resetDataLoaded?.(['stores']);
+          }
           break;
         case 'user':
-          if (selectedOrg) onRefreshUsers(selectedOrg);
+          if (selectedOrg) {
+            onRefreshUsers(selectedOrg);
+            resetDataLoaded?.(['users']);
+          }
           break;
       }
     };
@@ -75,15 +86,33 @@ export function useOrganizationActions({
   };
 
   const handleAddUser = async (newUser: NewUser, orgId: string, conceptId: string) => {
-    await baseHandleAddUser(newUser, orgId, conceptId, onRefreshUsers);
+    await baseHandleAddUser(newUser, orgId, conceptId, (orgIdToRefresh) => {
+      onRefreshUsers(orgIdToRefresh);
+      resetDataLoaded?.(['users']);
+    });
+  };
+
+  const wrappedHandleAddOrganization = async (name: string, organizations: any[], setOrganizations: any) => {
+    await handleAddOrganization(name, organizations, setOrganizations);
+    resetDataLoaded?.(['organizations']);
+  };
+
+  const wrappedHandleAddConcept = async (name: string, concepts: any[], setConcepts: any) => {
+    await handleAddConcept(name, concepts, setConcepts);
+    resetDataLoaded?.(['concepts']);
+  };
+
+  const wrappedHandleAddStore = async (name: string, externalId: string, stores: any[], setStores: any) => {
+    await handleAddStore(name, externalId, stores, setStores);
+    resetDataLoaded?.(['stores']);
   };
 
   return {
     handleToggleActive,
     handleEdit,
     handleAddUser,
-    handleAddOrganization,
-    handleAddConcept,
-    handleAddStore,
+    handleAddOrganization: wrappedHandleAddOrganization,
+    handleAddConcept: wrappedHandleAddConcept,
+    handleAddStore: wrappedHandleAddStore,
   };
 }

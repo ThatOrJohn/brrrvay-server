@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { PaginationState } from '@/types/admin';
 
@@ -31,68 +30,79 @@ export function useOrganizationDataEffects({
   setConceptsPagination,
   setStoresPagination,
 }: OrganizationDataEffectsProps) {
-  // Use refs to track previous values and prevent infinite loops
-  const prevOrgIdRef = useRef<string | null>(null);
-  const prevConceptIdRef = useRef<string | null>(null);
-  const hasConceptsRef = useRef(false);
-  const hasStoresRef = useRef(false);
+  // Use refs to track what we've already fetched to prevent duplicate calls
+  const fetchedDataRef = useRef({
+    conceptsForOrg: new Set<string>(),
+    storesForConcept: new Set<string>(),
+    usersForOrg: new Set<string>(),
+    conceptsPaginationFetched: false,
+    storesPaginationFetched: false,
+  });
 
-  // Only fetch concepts when orgId actually changes and we don't have concepts yet
+  // Reset tracking when navigation changes
   useEffect(() => {
-    if (orgId && orgId !== prevOrgIdRef.current && !hasConceptsRef.current) {
-      console.log('Fetching concepts for new orgId:', orgId);
-      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
-      prevOrgIdRef.current = orgId;
-      hasConceptsRef.current = true;
+    if (orgId) {
+      fetchedDataRef.current.conceptsForOrg.clear();
+      fetchedDataRef.current.usersForOrg.clear();
+      fetchedDataRef.current.conceptsPaginationFetched = false;
     }
   }, [orgId]);
 
-  // Only fetch stores when conceptId actually changes and we don't have stores yet
   useEffect(() => {
-    if (conceptId && conceptId !== prevConceptIdRef.current && !hasStoresRef.current) {
-      console.log('Fetching stores for new conceptId:', conceptId);
+    if (conceptId) {
+      fetchedDataRef.current.storesForConcept.clear();
+      fetchedDataRef.current.storesPaginationFetched = false;
+    }
+  }, [conceptId]);
+
+  // Fetch concepts when orgId is available and we haven't fetched them yet
+  useEffect(() => {
+    if (orgId && !fetchedDataRef.current.conceptsForOrg.has(orgId)) {
+      console.log('Fetching concepts for orgId:', orgId);
+      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
+      fetchedDataRef.current.conceptsForOrg.add(orgId);
+    }
+  }, [orgId, conceptId, storeId, fetchConcepts, conceptsPagination, setConceptsPagination]);
+
+  // Fetch stores when conceptId is available and we haven't fetched them yet
+  useEffect(() => {
+    if (conceptId && !fetchedDataRef.current.storesForConcept.has(conceptId)) {
+      console.log('Fetching stores for conceptId:', conceptId);
       fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
-      prevConceptIdRef.current = conceptId;
-      hasStoresRef.current = true;
+      fetchedDataRef.current.storesForConcept.add(conceptId);
     }
-  }, [conceptId]);
+  }, [conceptId, storeId, fetchStores, storesPagination, setStoresPagination]);
 
-  // Reset refs when navigation changes
+  // Fetch users when orgId is available and we haven't fetched them yet
   useEffect(() => {
-    if (!orgId) {
-      hasConceptsRef.current = false;
-      prevOrgIdRef.current = null;
+    const userKey = `${orgId}-${conceptId || 'all'}`;
+    if (orgId && !fetchedDataRef.current.usersForOrg.has(userKey)) {
+      console.log('Fetching users for orgId:', orgId, 'conceptId:', conceptId);
+      fetchUsers(orgId, conceptId || undefined);
+      fetchedDataRef.current.usersForOrg.add(userKey);
     }
-  }, [orgId]);
+  }, [orgId, conceptId, fetchUsers]);
 
+  // Handle pagination changes (only fetch if we have data and pagination actually changed)
   useEffect(() => {
-    if (!conceptId) {
-      hasStoresRef.current = false;
-      prevConceptIdRef.current = null;
-    }
-  }, [conceptId]);
-
-  // Fetch concepts when pagination changes (only if we have an orgId and already have some concepts)
-  useEffect(() => {
-    if (orgId && hasConceptsRef.current && concepts.length > 0) {
-      console.log('Fetching concepts for pagination change');
-      fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
+    if (orgId && concepts.length > 0 && !fetchedDataRef.current.conceptsPaginationFetched) {
+      // Only fetch if this is a pagination change, not initial load
+      if (conceptsPagination.page > 1 || conceptsPagination.pageSize !== 10) {
+        console.log('Fetching concepts for pagination change');
+        fetchConcepts(orgId, conceptsPagination, setConceptsPagination, conceptId, storeId);
+      }
+      fetchedDataRef.current.conceptsPaginationFetched = true;
     }
   }, [conceptsPagination.page, conceptsPagination.pageSize]);
 
-  // Fetch stores when pagination changes (only if we have a conceptId and already have some stores)
   useEffect(() => {
-    if (conceptId && hasStoresRef.current && stores.length > 0) {
-      console.log('Fetching stores for pagination change');
-      fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
+    if (conceptId && stores.length > 0 && !fetchedDataRef.current.storesPaginationFetched) {
+      // Only fetch if this is a pagination change, not initial load
+      if (storesPagination.page > 1 || storesPagination.pageSize !== 10) {
+        console.log('Fetching stores for pagination change');
+        fetchStores(conceptId, storesPagination, setStoresPagination, storeId);
+      }
+      fetchedDataRef.current.storesPaginationFetched = true;
     }
   }, [storesPagination.page, storesPagination.pageSize]);
-
-  // Only fetch users when orgId or conceptId changes
-  useEffect(() => {
-    if (orgId) {
-      console.log('Fetching users for orgId:', orgId, 'conceptId:', conceptId);
-      fetchUsers(orgId, conceptId || undefined);
-    }
-  }, [orgId, conceptId]);
 }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useUrlParams } from './useUrlParams';
 import { usePaginationState } from './usePaginationState';
@@ -44,12 +43,21 @@ export function useOrganizationData() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataLoaded, setDataLoaded] = useState({
+    organizations: false,
+    concepts: false,
+    stores: false,
+    users: false,
+  });
 
   // Only auto-load organizations list on mount
   useEffect(() => {
     const handleFetchOrganizations = async () => {
+      if (dataLoaded.organizations) return;
+      
       try {
         await fetchOrganizations();
+        setDataLoaded(prev => ({ ...prev, organizations: true }));
       } catch (err) {
         setError('Failed to fetch organizations');
       } finally {
@@ -57,44 +65,89 @@ export function useOrganizationData() {
       }
     };
     handleFetchOrganizations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dataLoaded.organizations, fetchOrganizations]);
 
-  // Handle organization selection: clear concepts/stores/users so they are not stale; do not auto-fetch
+  // Handle organization selection: clear dependent data and set selected org
   useEffect(() => {
-    if (orgId) {
+    if (orgId !== selectedOrg) {
       setSelectedOrg(orgId);
       setSelectedConcept(null);
-      setConcepts([]);
-      setStores([]);
-      setUsers([]);
-    } else {
-      setSelectedOrg(null);
-      setSelectedConcept(null);
-      setConcepts([]);
-      setStores([]);
-      setUsers([]);
+      
+      // Clear dependent data when org changes
+      if (orgId !== selectedOrg) {
+        setConcepts([]);
+        setStores([]);
+        setUsers([]);
+        setDataLoaded(prev => ({ 
+          ...prev, 
+          concepts: false, 
+          stores: false, 
+          users: false 
+        }));
+      }
     }
-    // Intentionally do NOT fetchConcepts or fetchUsers here
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId]);
+  }, [orgId, selectedOrg, setConcepts, setStores, setUsers]);
 
-  // Handle concept selection: clear stores/users so they are not stale; do not auto-fetch
+  // Handle concept selection: clear dependent data
   useEffect(() => {
-    if (conceptId && orgId) {
+    if (conceptId !== selectedConcept) {
       setSelectedConcept(conceptId);
-      setStores([]);
-      setUsers([]);
-    } else {
-      setSelectedConcept(null);
-      setStores([]);
-      setUsers([]);
+      
+      // Clear dependent data when concept changes
+      if (conceptId !== selectedConcept) {
+        setStores([]);
+        setDataLoaded(prev => ({ ...prev, stores: false }));
+      }
     }
-    // Intentionally do NOT fetchStores here
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conceptId, orgId]);
+  }, [conceptId, selectedConcept, setStores]);
 
-  // No fetching users/concepts/stores on pagination/state change; leave as manual trigger from consumers
+  // Create wrapper functions that respect the dataLoaded state
+  const fetchConceptsOnce = async (orgIdToFetch: string, pagination: any, setPagination: any, conceptIdParam?: string | null, storeIdParam?: string | null) => {
+    if (dataLoaded.concepts && !conceptIdParam && !storeIdParam) return;
+    
+    try {
+      await fetchConcepts(orgIdToFetch, pagination, setPagination, conceptIdParam, storeIdParam);
+      setDataLoaded(prev => ({ ...prev, concepts: true }));
+    } catch (error) {
+      console.error('Error fetching concepts:', error);
+      setError('Failed to fetch concepts');
+    }
+  };
+
+  const fetchStoresOnce = async (conceptIdToFetch: string, pagination: any, setPagination: any, storeIdParam?: string | null) => {
+    if (dataLoaded.stores && !storeIdParam) return;
+    
+    try {
+      await fetchStores(conceptIdToFetch, pagination, setPagination, storeIdParam);
+      setDataLoaded(prev => ({ ...prev, stores: true }));
+    } catch (error) {
+      console.error('Error fetching stores:', error);
+      setError('Failed to fetch stores');
+    }
+  };
+
+  const fetchUsersOnce = async (orgIdToFetch: string, conceptIdParam?: string) => {
+    if (dataLoaded.users) return;
+    
+    try {
+      await fetchUsers(orgIdToFetch, conceptIdParam);
+      setDataLoaded(prev => ({ ...prev, users: true }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setError('Failed to fetch users');
+    }
+  };
+
+  // Reset data loaded flags when we need to refresh
+  const resetDataLoaded = (keys: (keyof typeof dataLoaded)[]) => {
+    setDataLoaded(prev => {
+      const newState = { ...prev };
+      keys.forEach(key => {
+        newState[key] = false;
+      });
+      return newState;
+    });
+  };
 
   return {
     // State
@@ -118,10 +171,16 @@ export function useOrganizationData() {
     setConceptsPagination,
     setStoresPagination,
 
-    // Fetch functions must now be called manually as needed
-    fetchOrganizations,
-    fetchConcepts,
-    fetchStores,
-    fetchUsers,
+    // Fetch functions that prevent duplicate calls
+    fetchOrganizations: async () => {
+      await fetchOrganizations();
+      setDataLoaded(prev => ({ ...prev, organizations: true }));
+    },
+    fetchConcepts: fetchConceptsOnce,
+    fetchStores: fetchStoresOnce,
+    fetchUsers: fetchUsersOnce,
+    
+    // Utility to force refresh
+    resetDataLoaded,
   };
 }

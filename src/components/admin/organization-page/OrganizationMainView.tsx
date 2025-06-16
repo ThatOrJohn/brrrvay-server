@@ -1,4 +1,3 @@
-
 import React from 'react';
 import OrganizationPageLayout from './OrganizationPageLayout';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
@@ -38,18 +37,22 @@ export default function OrganizationMainView({
     fetchConcepts,
     fetchStores,
     fetchUsers,
+    resetDataLoaded,
   } = useOrganizationData();
 
   // WRAPPER FETCH functions for useOrganizationActions (correct signature)
   const fetchConceptsWrapper = (orgIdToFetch: string) => {
+    resetDataLoaded(['concepts']);
     fetchConcepts(orgIdToFetch, conceptsPagination, setConceptsPagination, conceptId, storeId);
   };
 
   const fetchStoresWrapper = (conceptIdToFetch: string) => {
+    resetDataLoaded(['stores']);
     fetchStores(conceptIdToFetch, storesPagination, setStoresPagination, storeId);
   };
 
   const fetchUsersWrapper = (orgIdToFetch: string) => {
+    resetDataLoaded(['users']);
     fetchUsers(orgIdToFetch, conceptId || undefined);
   };
 
@@ -63,10 +66,14 @@ export default function OrganizationMainView({
   } = useOrganizationActions({
     selectedOrg,
     selectedConcept,
-    onRefreshOrganizations: fetchOrganizations,
+    onRefreshOrganizations: () => {
+      resetDataLoaded(['organizations']);
+      fetchOrganizations();
+    },
     onRefreshConcepts: fetchConceptsWrapper,
     onRefreshStores: fetchStoresWrapper,
     onRefreshUsers: fetchUsersWrapper,
+    resetDataLoaded,
   });
 
   const {
