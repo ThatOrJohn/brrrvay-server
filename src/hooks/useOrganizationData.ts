@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUrlParams } from './useUrlParams';
 import { usePaginationState } from './usePaginationState';
 import { useOrganizationsFetcher } from './useOrganizationsFetcher';
@@ -43,7 +43,19 @@ export function useOrganizationData() {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dataLoaded, setDataLoaded] = useState({
+
+  // Use refs to track what's been fetched and prevent duplicates
+  const fetchTracker = useRef({
+    organizations: false,
+    concepts: new Set<string>(),
+    stores: new Set<string>(),
+    users: new Set<string>(),
+    conceptsPagination: new Set<string>(),
+    storesPagination: new Set<string>(),
+  });
+
+  // Track current fetch operations to prevent concurrent calls
+  const fetchingRef = useRef({
     organizations: false,
     concepts: false,
     stores: false,
@@ -53,99 +65,137 @@ export function useOrganizationData() {
   // Only auto-load organizations list on mount
   useEffect(() => {
     const handleFetchOrganizations = async () => {
-      if (dataLoaded.organizations) return;
+      if (fetchTracker.current.organizations || fetchingRef.current.organizations) return;
       
+      fetchingRef.current.organizations = true;
       try {
         await fetchOrganizations();
-        setDataLoaded(prev => ({ ...prev, organizations: true }));
+        fetchTracker.current.organizations = true;
       } catch (err) {
         setError('Failed to fetch organizations');
       } finally {
         setLoading(false);
+        fetchingRef.current.organizations = false;
       }
     };
     handleFetchOrganizations();
-  }, [dataLoaded.organizations, fetchOrganizations]);
+  }, []); // Only run once on mount
 
-  // Handle organization selection: clear dependent data and set selected org
+  // Handle organization selection
   useEffect(() => {
     if (orgId !== selectedOrg) {
       setSelectedOrg(orgId);
       setSelectedConcept(null);
       
       // Clear dependent data when org changes
-      if (orgId !== selectedOrg) {
-        setConcepts([]);
-        setStores([]);
-        setUsers([]);
-        setDataLoaded(prev => ({ 
-          ...prev, 
-          concepts: false, 
-          stores: false, 
-          users: false 
-        }));
-      }
+      setConcepts([]);
+      setStores([]);
+      setUsers([]);
+      
+      // Reset fetch tracking for dependent data
+      fetchTracker.current.concepts.clear();
+      fetchTracker.current.stores.clear();
+      fetchTracker.current.users.clear();
+      fetchTracker.current.conceptsPagination.clear();
+      fetchTracker.current.storesPagination.clear();
     }
   }, [orgId, selectedOrg, setConcepts, setStores, setUsers]);
 
-  // Handle concept selection: clear dependent data
+  // Handle concept selection
   useEffect(() => {
     if (conceptId !== selectedConcept) {
       setSelectedConcept(conceptId);
       
       // Clear dependent data when concept changes
-      if (conceptId !== selectedConcept) {
-        setStores([]);
-        setDataLoaded(prev => ({ ...prev, stores: false }));
-      }
+      setStores([]);
+      
+      // Reset fetch tracking for dependent data
+      fetchTracker.current.stores.clear();
+      fetchTracker.current.storesPagination.clear();
     }
   }, [conceptId, selectedConcept, setStores]);
 
-  // Create wrapper functions that respect the dataLoaded state
+  // Create wrapper functions that prevent duplicate calls
   const fetchConceptsOnce = async (orgIdToFetch: string, pagination: any, setPagination: any, conceptIdParam?: string | null, storeIdParam?: string | null) => {
-    if (dataLoaded.concepts && !conceptIdParam && !storeIdParam) return;
+    const key = `${orgIdToFetch}-${conceptIdParam || 'null'}-${storeIdParam || 'null'}`;
     
+    if (fetchTracker.current.concepts.has(key) || fetchingRef.current.concepts) {
+      console.log('Skipping concepts fetch - already fetched or in progress:', key);
+      return;
+    }
+    
+    fetchingRef.current.concepts = true;
     try {
+      console.log('Fetching concepts for:', key);
       await fetchConcepts(orgIdToFetch, pagination, setPagination, conceptIdParam, storeIdParam);
-      setDataLoaded(prev => ({ ...prev, concepts: true }));
+      fetchTracker.current.concepts.add(key);
     } catch (error) {
       console.error('Error fetching concepts:', error);
       setError('Failed to fetch concepts');
+    } finally {
+      fetchingRef.current.concepts = false;
     }
   };
 
   const fetchStoresOnce = async (conceptIdToFetch: string, pagination: any, setPagination: any, storeIdParam?: string | null) => {
-    if (dataLoaded.stores && !storeIdParam) return;
+    const key = `${conceptIdToFetch}-${storeIdParam || 'null'}`;
     
+    if (fetchTracker.current.stores.has(key) || fetchingRef.current.stores) {
+      console.log('Skipping stores fetch - already fetched or in progress:', key);
+      return;
+    }
+    
+    fetchingRef.current.stores = true;
     try {
+      console.log('Fetching stores for:', key);
       await fetchStores(conceptIdToFetch, pagination, setPagination, storeIdParam);
-      setDataLoaded(prev => ({ ...prev, stores: true }));
+      fetchTracker.current.stores.add(key);
     } catch (error) {
       console.error('Error fetching stores:', error);
       setError('Failed to fetch stores');
+    } finally {
+      fetchingRef.current.stores = false;
     }
   };
 
   const fetchUsersOnce = async (orgIdToFetch: string, conceptIdParam?: string) => {
-    if (dataLoaded.users) return;
+    const key = `${orgIdToFetch}-${conceptIdParam || 'null'}`;
     
+    if (fetchTracker.current.users.has(key) || fetchingRef.current.users) {
+      console.log('Skipping users fetch - already fetched or in progress:', key);
+      return;
+    }
+    
+    fetchingRef.current.users = true;
     try {
+      console.log('Fetching users for:', key);
       await fetchUsers(orgIdToFetch, conceptIdParam);
-      setDataLoaded(prev => ({ ...prev, users: true }));
+      fetchTracker.current.users.add(key);
     } catch (error) {
       console.error('Error fetching users:', error);
       setError('Failed to fetch users');
+    } finally {
+      fetchingRef.current.users = false;
     }
   };
 
-  // Reset data loaded flags when we need to refresh
-  const resetDataLoaded = (keys: (keyof typeof dataLoaded)[]) => {
-    setDataLoaded(prev => {
-      const newState = { ...prev };
-      keys.forEach(key => {
-        newState[key] = false;
-      });
-      return newState;
+  // Reset fetch tracking when we need to refresh
+  const resetFetchTracking = (keys: string[]) => {
+    keys.forEach(key => {
+      switch (key) {
+        case 'organizations':
+          fetchTracker.current.organizations = false;
+          break;
+        case 'concepts':
+          fetchTracker.current.concepts.clear();
+          break;
+        case 'stores':
+          fetchTracker.current.stores.clear();
+          break;
+        case 'users':
+          fetchTracker.current.users.clear();
+          break;
+      }
     });
   };
 
@@ -173,14 +223,21 @@ export function useOrganizationData() {
 
     // Fetch functions that prevent duplicate calls
     fetchOrganizations: async () => {
-      await fetchOrganizations();
-      setDataLoaded(prev => ({ ...prev, organizations: true }));
+      if (!fetchingRef.current.organizations) {
+        fetchingRef.current.organizations = true;
+        try {
+          await fetchOrganizations();
+          fetchTracker.current.organizations = true;
+        } finally {
+          fetchingRef.current.organizations = false;
+        }
+      }
     },
     fetchConcepts: fetchConceptsOnce,
     fetchStores: fetchStoresOnce,
     fetchUsers: fetchUsersOnce,
     
     // Utility to force refresh
-    resetDataLoaded,
+    resetFetchTracking,
   };
 }
