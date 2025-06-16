@@ -3,7 +3,6 @@ import OrganizationPageLayout from './OrganizationPageLayout';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useOrganizationActions } from '@/hooks/useOrganizationActions';
 import { useOrganizationPageState } from '@/hooks/useOrganizationPageState';
-import { useOrganizationDataEffects } from './OrganizationDataEffects';
 import { useOrganizationFormHandlers } from './OrganizationFormHandlers';
 import { useOrganizationEditHandlers } from './OrganizationEditHandlers';
 
@@ -37,22 +36,18 @@ export default function OrganizationMainView({
     fetchConcepts,
     fetchStores,
     fetchUsers,
-    forceRefresh,
   } = useOrganizationData();
 
-  // WRAPPER FETCH functions for useOrganizationActions (correct signature)
+  // Simple wrapper functions that just call the fetch functions
   const fetchConceptsWrapper = (orgIdToFetch: string) => {
-    forceRefresh(['concepts']);
     fetchConcepts(orgIdToFetch, conceptsPagination, setConceptsPagination, conceptId, storeId);
   };
 
   const fetchStoresWrapper = (conceptIdToFetch: string) => {
-    forceRefresh(['stores']);
     fetchStores(conceptIdToFetch, storesPagination, setStoresPagination, storeId);
   };
 
   const fetchUsersWrapper = (orgIdToFetch: string) => {
-    forceRefresh(['users']);
     fetchUsers(orgIdToFetch, conceptId || undefined);
   };
 
@@ -66,10 +61,7 @@ export default function OrganizationMainView({
   } = useOrganizationActions({
     selectedOrg,
     selectedConcept,
-    onRefreshOrganizations: () => {
-      forceRefresh(['organizations']);
-      fetchOrganizations();
-    },
+    onRefreshOrganizations: fetchOrganizations,
     onRefreshConcepts: fetchConceptsWrapper,
     onRefreshStores: fetchStoresWrapper,
     onRefreshUsers: fetchUsersWrapper,
@@ -92,21 +84,27 @@ export default function OrganizationMainView({
     resetEditState,
   } = useOrganizationPageState();
 
-  // Use data effects hook
-  useOrganizationDataEffects({
-    orgId,
-    conceptId,
-    storeId,
-    concepts,
-    stores,
-    conceptsPagination,
-    storesPagination,
-    fetchConcepts,
-    fetchStores,
-    fetchUsers,
-    setConceptsPagination,
-    setStoresPagination,
-  });
+  // Manual data loading - only call when explicitly needed
+  React.useEffect(() => {
+    if (orgId && concepts.length === 0) {
+      console.log('Loading concepts for orgId:', orgId);
+      fetchConceptsWrapper(orgId);
+    }
+  }, [orgId]);
+
+  React.useEffect(() => {
+    if (conceptId && stores.length === 0) {
+      console.log('Loading stores for conceptId:', conceptId);
+      fetchStoresWrapper(conceptId);
+    }
+  }, [conceptId]);
+
+  React.useEffect(() => {
+    if (orgId && users.length === 0) {
+      console.log('Loading users for orgId:', orgId);
+      fetchUsersWrapper(orgId);
+    }
+  }, [orgId, conceptId]);
 
   // Use form handlers hook
   const {
